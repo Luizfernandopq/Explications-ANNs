@@ -99,7 +99,7 @@ def main():
 
             data = data_train.append(data_test)
 
-            model_path = f'datasets\\{dir_path}\\model_2layers_{dir_path}.h5'
+            model_path = f'datasets\\{dir_path}\\model_4layers_{dir_path}.h5'
             model = tf.keras.models.load_model(model_path)
 
             codify_network_time = []

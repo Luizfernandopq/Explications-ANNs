@@ -112,14 +112,17 @@ def codify_network_tjeng(mdl, layers, input_variables, intermediate_variables, d
     return mdl, output_bounds
 
 
-def codify_network(model, dataframe, method, relaxe_constraints):
+def codify_network(model, dataframe, method, relaxe_constraints, num_of_slices=1):
     layers = model.layers
     num_features = layers[0].get_weights()[0].shape[0]
     mdl = mp.Model()
 
     domain_input, bounds_input = get_domain_and_bounds_inputs(dataframe)
     bounds_input = np.array(bounds_input)
-
+    print(bounds_input)
+    if num_of_slices > 1:
+        slices = slice(bounds_input, num_of_slices)
+        sliced_bounds_input = combine_slices(slices, num_of_slices)
     if relaxe_constraints:
         input_variables = mdl.continuous_var_list(num_features, lb=bounds_input[:, 0], ub=bounds_input[:, 1], name='x')
     else:
@@ -158,6 +161,7 @@ def codify_network(model, dataframe, method, relaxe_constraints):
         mdl, output_bounds = codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables,
                                                   intermediate_variables, decision_variables, output_variables)
 
+    '''
     if relaxe_constraints:
         # Tighten domain of variables 'a'
         for i in decision_variables:
@@ -172,20 +176,35 @@ def codify_network(model, dataframe, method, relaxe_constraints):
                 x.set_vartype('Binary')
             elif domain_input[i] == 'C':
                 x.set_vartype('Continuous')
+    '''
 
     return mdl, output_bounds
+
+
+def combine_slices(slices, num_of_slices):
+    sliced_bounds_input = []
+    permut = num_of_slices ** len(slices)
+    for i in range(permut):
+        sliced_aux = []
+        controle = i
+        for j in range(len(slices)):
+            sliced_aux.append(slices[controle % num_of_slices][j])
+            controle = int(i / num_of_slices)
+        sliced_bounds_input.append(sliced_aux)
+    return sliced_bounds_input
 
 
 def get_domain_and_bounds_inputs(dataframe):
     domain = []
     bounds = []
-    for column in dataframe.columns[:-1]:
-        if len(dataframe[column].unique()) == 2:
+    for column in dataframe.columns[:-1]: # percorre o dataframe por colunas até a penultima coluna
+        if len(dataframe[column].unique()) == 2: # verifica se só há variáveis binárias
             domain.append('B')
             bound_inf = dataframe[column].min()
             bound_sup = dataframe[column].max()
             bounds.append([bound_inf, bound_sup])
-        elif np.any(dataframe[column].unique().astype(np.int64) != dataframe[column].unique().astype(np.float64)):
+        elif np.any(dataframe[column].unique().astype(np.int64) !=
+                    dataframe[column].unique().astype(np.float64)):
             domain.append('C')
             bound_inf = dataframe[column].min()
             bound_sup = dataframe[column].max()
@@ -199,15 +218,27 @@ def get_domain_and_bounds_inputs(dataframe):
     return domain, bounds
 
 
+def slice(bounds_input, numOfSets):
+    listOfBoundsInput = []
+    for line in bounds_input:
+        relativeAmplitude = (line[1] - line[0])/numOfSets
+        slices = []
+        for i in range(numOfSets):
+            slices.append([line[0] + relativeAmplitude * i, line[0] + relativeAmplitude * (i+1)])
+        listOfBoundsInput.append(slices)
+
+    return listOfBoundsInput
+
 if __name__ == '__main__':
     path_dir = 'glass'
-    #model = tf.keras.models.load_model(f'datasets\\{path_dir}\\model_{path_dir}.h5')
-    model = tf.keras.models.load_model(f'datasets\\{path_dir}\\teste.h5')
+    model = tf.keras.models.load_model(f'datasets/{path_dir}/model_2layers_{path_dir}.h5')
+    model = tf.keras.models.load_model(f'datasets/{path_dir}/teste.h5')
 
-    data_test = pd.read_csv(f'datasets\\{path_dir}\\test.csv')
-    data_train = pd.read_csv(f'datasets\\{path_dir}\\train.csv')
+    data_test = pd.read_csv(f'datasets/{path_dir}/test.csv')
+    data_train = pd.read_csv(f'datasets/{path_dir}/train.csv')
     data = data_train.append(data_test)
     data = data[['RI', 'Na', 'target']]
+
 
     mdl, bounds = codify_network(model, data, 'tjeng', False)
     print(mdl.export_to_string())

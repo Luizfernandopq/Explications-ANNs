@@ -5,10 +5,10 @@ import os
 from time import time
 
 
-dir_path = ''
-num_classes = 2
-n_neurons = 20
-n_hidden_layers = 4
+dir_path = 'glass'
+num_classes = 5
+n_neurons = 80
+n_hidden_layers = 2
 
 data_train = pd.read_csv(os.path.join('datasets', dir_path, 'train.csv')).to_numpy()
 data_test = pd.read_csv(os.path.join('datasets', dir_path, 'test.csv')).to_numpy()
@@ -38,7 +38,10 @@ es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
 ck = tf.keras.callbacks.ModelCheckpoint(model_path, monitor='val_accuracy', save_best_only=True)
 
 start = time()
-model.fit(x_train, y_train_ohe, batch_size=4, epochs=100, validation_data=(x_test, y_test_ohe), verbose=2, callbacks=[ck, es])
+model.fit(x_train, y_train_ohe, batch_size=4, epochs=100, validation_data=(x_test, y_test_ohe),
+          verbose=2, callbacks=[ck, es])
+
+
 print(f'Tempo de Treinamento: {time()-start}')
 
 model = tf.keras.models.load_model(model_path)
