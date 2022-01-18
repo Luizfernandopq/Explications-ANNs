@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from milp import codify_network
+from code.rede_em_milp.milp import codify_network
 from time import time
 from statistics import mean, stdev
 import pandas as pd

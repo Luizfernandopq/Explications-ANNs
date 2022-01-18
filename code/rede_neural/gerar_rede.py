@@ -10,8 +10,8 @@ num_classes = 5
 n_neurons = 80
 n_hidden_layers = 2
 
-data_train = pd.read_csv(os.path.join('datasets', dir_path, 'train.csv')).to_numpy()
-data_test = pd.read_csv(os.path.join('datasets', dir_path, 'test.csv')).to_numpy()
+data_train = pd.read_csv(os.path.join('../../datasets', dir_path, 'train.csv')).to_numpy()
+data_test = pd.read_csv(os.path.join('../../datasets', dir_path, 'test.csv')).to_numpy()
 
 x_train, y_train = data_train[:, :-1], data_train[:, -1]
 x_test, y_test = data_test[:, :-1], data_test[:, -1]
@@ -32,7 +32,7 @@ model.compile(optimizer=tf.keras.optimizers.Adam(),
               loss='categorical_crossentropy',
               metrics=['accuracy'], )
 
-model_path = os.path.join('datasets', dir_path, f'model_{n_hidden_layers}layers_{dir_path}.h5')
+model_path = os.path.join('../../datasets', dir_path, f'model_{n_hidden_layers}layers_{dir_path}.h5')
 
 es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
 ck = tf.keras.callbacks.ModelCheckpoint(model_path, monitor='val_accuracy', save_best_only=True)
