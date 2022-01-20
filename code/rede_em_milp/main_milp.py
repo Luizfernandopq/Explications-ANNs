@@ -29,7 +29,7 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_slices=1):
         sliced_bounds_input = slice.slice_bounds(bounds_input, num_de_slices)
         print("sliced_bounds_input")
         print(sliced_bounds_input)
-        # slices = np.array(slices)
+        sliced_bounds_input = np.array(sliced_bounds_input)
         '''
         print("slices")
         print(sliced_bounds_input)
