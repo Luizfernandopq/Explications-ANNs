@@ -1,7 +1,14 @@
-def slice_bounds(bounds_input, num_de_sets):
-    lista_de_bounds_input = []
-    for linha in bounds_input:
+import numpy as np
 
+
+def slice_bounds(bounds_input, num_de_sets):
+    if num_de_sets < 2:
+        return [bounds_input], 1
+
+    lista_de_bounds_input = []
+    len_bounds_input = 0
+    for linha in bounds_input:
+        len_bounds_input += 1
         amplitude_relativa = (linha[1] - linha[0]) / num_de_sets
         slices = []
         for i in range(num_de_sets):
@@ -9,10 +16,10 @@ def slice_bounds(bounds_input, num_de_sets):
             slices.append([linha[0] + amplitude_relativa * i, linha[0] + amplitude_relativa * (i + 1)])
         lista_de_bounds_input.append(slices)
 
-    return combine_sliced_bounds(lista_de_bounds_input, num_de_sets)
+    return combine_sliced_bounds(lista_de_bounds_input, len_bounds_input, num_de_sets)
 
 
-def combine_sliced_bounds(slices, num_de_slices):
+def combine_sliced_bounds(slices, num_de_variaveis,num_de_slices):
     # slices: lista com pares de valores -> representa os limites
     # superior e inferior de cada variável fatiada
     # num_de_slices: inteiro -> representa o número de fatias da variável slices
@@ -20,7 +27,6 @@ def combine_sliced_bounds(slices, num_de_slices):
     print(f"def combine_slice \n{slices}\n")
 
     sliced_bounds_input = []
-    num_de_variaveis = len(slices)
     num_de_arranjos = num_de_slices ** num_de_variaveis
     # num_de_arranjos: é um inteiro encontrado
     # a partir do número de fatias elevedado ao número de variáveis
@@ -36,7 +42,7 @@ def combine_sliced_bounds(slices, num_de_slices):
         digitos = proximo(digitos, num_de_slices)
         sliced_bounds_input.append(sliced_aux)
 
-    return sliced_bounds_input
+    return np.array(sliced_bounds_input), num_de_arranjos
 
 
 '''

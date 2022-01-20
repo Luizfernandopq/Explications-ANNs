@@ -3,8 +3,8 @@ from cplex import infinity
 import numpy as np
 import tensorflow as tf
 import pandas as pd
+import slice_bounds as sb
 
-import slice
 from tjeng import codify_network_tjeng
 from fischetti import codify_network_fischetti
 
@@ -16,60 +16,56 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_slices=1):
     # num_de_slices: inteiro indicando as fatias da rede
 
     layers = modelo_em_tf.layers
-    modelo_em_milp = mp.Model()
 
     domain_input, bounds_input = get_domain_and_bounds_inputs(dataframe)
-    bounds_input = np.array(bounds_input)
-    '''
-    print("bounds_input")
-    print(bounds_input)
-    '''
 
-    if num_de_slices > 1:
-        sliced_bounds_input = slice.slice_bounds(bounds_input, num_de_slices)
-        print("sliced_bounds_input")
-        print(sliced_bounds_input)
-        sliced_bounds_input = np.array(sliced_bounds_input)
-        '''
-        print("slices")
-        print(sliced_bounds_input)
-        print("slices, np.array")
-        print(np.array(sliced_bounds_input))
-        '''
-    #     sliced_bounds_input = combine_slices(slices, num_de_slices)
-    #
-    # input_variables = normaliza_input_variables(modelo_em_milp, domain_input, bounds_input)
-    #
-    # intermediate_variables = []
-    # auxiliary_variables = []
-    # decision_variables = []
-    #
-    # for i in range(len(layers) - 1):
-    #     weights = layers[i].get_weights()[0]
-    #     intermediate_variables.append(modelo_em_milp.continuous_var_list(weights.shape[1], lb=0, name='y', key_format=f"_{i}_%s"))
-    #
-    #     if metodo:
-    #         auxiliary_variables.append(modelo_em_milp.continuous_var_list(weights.shape[1], lb=0, name='s', key_format=f"_{i}_%s"))
-    #     else:
-    #         decision_variables.append(
-    #             modelo_em_milp.binary_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
-    #
-    # output_variables = modelo_em_milp.continuous_var_list(layers[-1].get_weights()[0].shape[1], lb=-infinity, name='o')
-    #
-    # if not metodo:
-    #     modelo_em_milp, output_bounds = codify_network_tjeng(modelo_em_milp, layers, input_variables,
-    #                                                          intermediate_variables, decision_variables, output_variables)
-    # else:
-    #     modelo_em_milp, output_bounds = codify_network_fischetti(modelo_em_milp, layers, input_variables, auxiliary_variables,
-    #                                                              intermediate_variables, decision_variables, output_variables)
-    #
-    # return modelo_em_milp, output_bounds
+    sliced_bounds_input, num_de_redes = sb.slice_bounds(bounds_input, num_de_slices)
+
+    lista_de_milp_models = instancia_mp_models(num_de_redes)
+
+    lista_de_modelos_em_milp = []
+    lista_de_output_bounds = []
+
+    for milp_model in lista_de_milp_models:
+        input_variables = normaliza_input_variables(milp_model, domain_input, bounds_input)
+
+        intermediate_variables = []
+        auxiliary_variables = []
+        decision_variables = []
+
+        for i in range(len(layers) - 1):
+            weights = layers[i].get_weights()[0]
+            intermediate_variables.append(
+                milp_model.continuous_var_list(weights.shape[1], lb=0, name='y', key_format=f"_{i}_%s"))
+
+            if metodo:
+                auxiliary_variables.append(
+                    milp_model.continuous_var_list(weights.shape[1], lb=0, name='s', key_format=f"_{i}_%s"))
+            else:
+                decision_variables.append(
+                    milp_model.binary_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
+
+        output_variables = milp_model.continuous_var_list(layers[-1].get_weights()[0].shape[1], lb=-infinity, name='o')
+
+        if not metodo:
+            modelo_em_milp, output_bounds = codify_network_tjeng(milp_model, layers, input_variables,
+                                                                 intermediate_variables, decision_variables,
+                                                                 output_variables)
+        else:
+            modelo_em_milp, output_bounds = codify_network_fischetti(milp_model, layers, input_variables,
+                                                                     auxiliary_variables,
+                                                                     intermediate_variables, decision_variables,
+                                                                     output_variables)
+        lista_de_modelos_em_milp.append(modelo_em_milp)
+        lista_de_output_bounds.append(output_bounds)
+
+    return lista_de_milp_models, lista_de_output_bounds
 
 
 def normaliza_input_variables(modelo_em_milp, domain_input, bounds_input):
     # modelo_em_milp: um objeto mp.Model -> representa a rede em milp
     # domain_input: vetor de strings -> representa o tipo de intup de cada variável
-    # bounds_input: representa
+    # bounds_input: vetor com pares de valores -> representa os valores máximo e mínimo de cada variável
 
     input_variables = []
     for i in range(len(domain_input)):
@@ -81,6 +77,15 @@ def normaliza_input_variables(modelo_em_milp, domain_input, bounds_input):
         elif domain_input[i] == 'B':
             input_variables.append(modelo_em_milp.binary_var(name=f'x_{i}'))
     return input_variables
+
+
+def instancia_mp_models(num_de_modelos):
+    lista_de_mp_models = []
+    for _ in range(num_de_modelos):
+        m = mp.Model()
+        lista_de_mp_models.append(m)
+
+    return lista_de_mp_models
 
 
 def get_domain_and_bounds_inputs(dataframe):
@@ -123,9 +128,11 @@ if __name__ == '__main__':
     data = data[['RI', 'Na', 'target']]
 
     codify_network(modelo_em_tf, data, METODO_TJENG, NUM_DE_SLICES)
-    # modelo_em_milp, bounds = codify_network(modelo_em_tf, data, METODO_TJENG, NUM_DE_SLICES)
-    # print(modelo_em_milp.export_to_string())
-    # print(bounds)
+    lista_de_modelos_em_milp, lista_de_bounds = codify_network(modelo_em_tf, data, METODO_TJENG, NUM_DE_SLICES)
+    for i in range(len(lista_de_modelos_em_milp)):
+        print(lista_de_modelos_em_milp[i].export_to_string())
+        print(lista_de_bounds[i])
+
 
 # X ---- E
 # x1 == 1 /\ x2 == 3 /\ F /\ ~E    INSATISFÁTIVEL
