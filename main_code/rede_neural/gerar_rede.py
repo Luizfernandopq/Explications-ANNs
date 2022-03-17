@@ -5,10 +5,10 @@ import os
 from time import time
 
 
-dir_path = 'glass'
-num_classes = 5
-n_neurons = 80
-n_hidden_layers = 2
+dir_path = 'voting'
+num_classes = 2
+n_neurons = 40
+n_hidden_layers = 1
 
 data_train = pd.read_csv(os.path.join('../../datasets', dir_path, 'train.csv')).to_numpy()
 data_test = pd.read_csv(os.path.join('../../datasets', dir_path, 'test.csv')).to_numpy()
@@ -32,7 +32,8 @@ model.compile(optimizer=tf.keras.optimizers.Adam(),
               loss='categorical_crossentropy',
               metrics=['accuracy'], )
 
-model_path = os.path.join('../../datasets', dir_path, f'model_{n_hidden_layers}layers_{dir_path}.h5')
+model_path = os.path.join('../../datasets', dir_path,
+                          f'model_{n_hidden_layers}layers_{n_neurons}neurons_{dir_path}.h5')
 
 es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
 ck = tf.keras.callbacks.ModelCheckpoint(model_path, monitor='val_accuracy', save_best_only=True)
