@@ -6,6 +6,13 @@ import pandas as pd
 
 from main_code.rede_em_milp import main_milp as mm
 
+def copia_modelos(modelos_em_milp):
+    modelos_aux = []
+    for m in modelos_em_milp:
+        modelos_aux.append(m.clone())
+
+    return modelos_aux
+
 
 def insert_output_constraints_fischetti(mdl, output_variables, network_output, binary_variables):
     variable_output = output_variables[network_output]
@@ -34,6 +41,14 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
             aux_var += 1
 
     return mdl
+
+def get_explanation(lista_models, network_input, network_output, n_classes, method, output_bounds=None):
+    explanations = []
+    for index, mdl in enumerate(lista_models):
+        explanations.append(
+            get_miminal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds[index]))
+
+    return explanations
 
 
 def get_miminal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None):
@@ -89,7 +104,7 @@ def main():
     df = {'fischetti': {'size': [], 'milp_time': [], 'build_time': []},
           'tjeng': {'size': [], 'milp_time': [], 'build_time': []}}
 
-    slices = [1]
+    slices = [1, 2, 3]
 
     for dataset in datasets:
         dir_path = dataset['dir_path']
@@ -133,7 +148,7 @@ def main():
 
                 aux_lenlist = []
                 for j in range(len(lista_de_modelos_em_milp)):
-                    print(f'slice (max = {slices[j]}^{data.shape[1]}): {j+1}')
+                    print(f'slice (max = {slices[j]}^{data.shape[1]}): {j + 1}')
                     mdl_aux = lista_de_modelos_em_milp[j].clone()
                     output_bounds = lista_de_bounds[j]
                     start = time()
@@ -160,7 +175,8 @@ def main():
                 f'Explication sizes:\nm: {min(len_list)}\na: {mean(len_list)} +- {stdev(len_list)}\nM: {max(len_list)}')
             print(f'Time:\nm: {min(time_list)}\na: {mean(time_list)} +- {stdev(time_list)}\nM: {max(time_list)}')
             print(
-                f'Build Time:\nm: {min(codify_network_time)}\na: {mean(codify_network_time)} +- {stdev(codify_network_time)}\nM: {max(codify_network_time)}')
+                f'Build Time:\nm: {min(codify_network_time)}\na: {mean(codify_network_time)} +-'
+                f' {stdev(codify_network_time)}\nM: {max(codify_network_time)}')
 
     df = {'fischetti_size': df[METODO_FISCHETTI]['size'],
           'fischetti_time': df[METODO_FISCHETTI]['milp_time'],
@@ -176,6 +192,84 @@ def main():
     df.to_csv('results2.csv')
 
 
+def setup():
+    datasets = [['australian', 2],
+                ['auto', 5],
+                ['backache', 2],
+                ['breast-cancer', 2],
+                ['cleve', 2],
+                ['cleveland', 5],
+                ['glass', 5],
+                ['glass2', 2],
+                ['heart-statlog', 2],
+                ['hepatitis', 2],
+                ['spect', 2],
+                ['voting', 2]]
+
+    configurations = [5, 10, 20, 40]
+
+    return [datasets, configurations]
+
+
 if __name__ == '__main__':
-    # cProfile.run('main()', sort='time')
-    main()
+    # main()
+
+    METODO_TJENG = False
+    METODO_FISCHETTI = True
+
+    datasets, configurations = setup()
+
+    for dataset in datasets:
+        dir_path = dataset[0]
+        n_classes = dataset[1]
+
+        data_test = pd.read_csv(f'../../datasets/{dir_path}/test.csv')
+        data_train = pd.read_csv(f'../../datasets/{dir_path}/train.csv')
+
+        data = data_train.append(data_test)
+
+        for neurons in configurations:  # 5 10 20 40
+            print(dataset, neurons)
+
+            model_path_1layer = f'../../datasets/{dir_path}/model_1layers_{neurons}neurons_{dir_path}.h5'
+            model_1layer = tf.keras.models.load_model(model_path_1layer)
+
+            model_path_2layers = f'../../datasets/{dir_path}/model_2layers_{neurons}neurons_{dir_path}.h5'
+            model_2layers = tf.keras.models.load_model(model_path_2layers)
+
+            for sliced in range(1, 4):  # 1, 2, 3
+                for metodo in range(1, -1, -1):  # 1, 0
+                    lista_de_modelos_em_milp_1layer, lista_de_bounds_1layer = mm.codify_network(model_1layer,
+                                                                                                data, metodo, sliced)
+                    lista_de_modelos_em_milp_2layers, lista_de_bounds_2layers = mm.codify_network(model_2layers,
+                                                                                                  data, metodo, sliced)
+                    for i in range(data.shape[0]):
+                        print(f'Unidade: {i}')
+                        network_input = data[i, :-1]
+
+                        network_input_1layer = tf.reshape(tf.constant(network_input), (1, -1))
+                        network_output_1layer = model_1layer.predict(tf.constant(network_input))[0]
+                        network_output_1layer = tf.argmax(network_output_1layer)
+
+                        network_input_2layers = tf.reshape(tf.constant(network_input), (1, -1))
+                        network_output_2layers = model_1layer.predict(tf.constant(network_input))[0]
+                        network_output_2layers = tf.argmax(network_output_2layers)
+
+                        aux_lenlist = []
+
+                        mdl_1layer_aux = copia_modelos(lista_de_modelos_em_milp_1layer)
+                        mdl_2layers_aux = copia_modelos(lista_de_modelos_em_milp_2layers)
+                        start = time()
+
+                        explanation_1layer = get_explanation(mdl_1layer_aux, network_input_1layer, network_output_1layer,
+                                                                  n_classes=n_classes, method=metodo,
+                                                                  output_bounds=lista_de_bounds_1layer)
+
+                        explanation_2layers = get_explanation(mdl_2layers_aux, network_input_2layers, network_output_2layers,
+                                                              n_classes=n_classes, method=metodo,
+                                                              output_bounds=lista_de_bounds_2layers)
+
+                        print(explanation_1layer)
+
+
+
