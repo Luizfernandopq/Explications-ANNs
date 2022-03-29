@@ -2,7 +2,7 @@ import numpy as np
 
 
 def slice_bounds(bounds_input, num_de_sets):
-    if num_de_sets < 2:
+    if num_de_sets < 2 or num_de_sets > 4:
         return [bounds_input], 1
 
     lista_de_bounds_input = []
@@ -12,41 +12,55 @@ def slice_bounds(bounds_input, num_de_sets):
         amplitude_relativa = (linha[1] - linha[0]) / num_de_sets
         slices = []
         for i in range(num_de_sets):
-
             slices.append([linha[0] + amplitude_relativa * i, linha[0] + amplitude_relativa * (i + 1)])
         lista_de_bounds_input.append(slices)
 
     return combine_sliced_bounds(lista_de_bounds_input, len_bounds_input, num_de_sets)
 
 
-def combine_sliced_bounds(slices, num_de_variaveis,num_de_slices):
+def combine_slice_bounds_duplo(slices, num_de_variaveis):
+    # slices: lista com pares de valores -> representa os limites
+    # superior e inferior de cada variável fatiada
+
+    sliced_bounds_input = []
+    num_de_arranjos = 2 ** num_de_variaveis
+    # num_de_arranjos: é um inteiro encontrado
+    # a partir do número de fatias elevedado ao número de variáveis
+
+    for i in range(num_de_arranjos):
+        sliced_aux = []
+        for j in range(num_de_variaveis):
+            indice = int(i / 2 ** j)
+            sliced_aux.append(slices[j][indice % 2])
+        sliced_bounds_input.append(sliced_aux)
+
+    return np.array(sliced_bounds_input), num_de_arranjos
+
+
+def combine_sliced_bounds(slices, num_de_variaveis, num_de_slices):
     # slices: lista com pares de valores -> representa os limites
     # superior e inferior de cada variável fatiada
     # num_de_slices: inteiro -> representa o número de fatias da variável slices
-
-    print(f"def combine_slice \n{slices}\n")
 
     sliced_bounds_input = []
     num_de_arranjos = num_de_slices ** num_de_variaveis
     # num_de_arranjos: é um inteiro encontrado
     # a partir do número de fatias elevedado ao número de variáveis
 
-    digitos = converter_para_maximo_da_base(num_de_variaveis, num_de_slices)
-
     for i in range(num_de_arranjos):
         sliced_aux = []
         for j in range(num_de_variaveis):
-            endereco_da_variavel = digitos[j]
-            sliced_aux.append(slices[j][endereco_da_variavel])
-
-        digitos = proximo(digitos, num_de_slices)
+            variavel = num_de_variaveis - (j+1)
+            indice = int(i / num_de_slices ** variavel)
+            sliced_aux.append(slices[j][indice % num_de_slices])
         sliced_bounds_input.append(sliced_aux)
 
     return np.array(sliced_bounds_input), num_de_arranjos
 
 
 '''
-    Abaixo há funções para auxiliar na lógica geral das funções acima
+    Abaixo há funções para auxiliar na lógica geral das funções acima 
+    (Estas funções não estão sendo utilizadas e são obsoletas)
 '''
 
 

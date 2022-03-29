@@ -21,7 +21,6 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_slices=1):
     sliced_bounds_input, num_de_redes = sb.slice_bounds(bounds_input, num_de_slices)
 
     lista_de_milp_models = instancia_mp_models(num_de_redes)
-
     lista_de_modelos_em_milp = []
     lista_de_output_bounds = []
 
@@ -80,12 +79,10 @@ def normaliza_input_variables(modelo_em_milp, domain_input, bounds_input):
 
 def instancia_mp_models(num_de_modelos):
     # retorna uma lista de mp.Model
-
     lista_de_mp_models = []
     for _ in range(num_de_modelos):
         m = mp.Model()
         lista_de_mp_models.append(m)
-
     return lista_de_mp_models
 
 
