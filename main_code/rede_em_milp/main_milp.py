@@ -8,6 +8,7 @@ from main_code.rede_em_milp import slice_bounds as sb
 from main_code.rede_em_milp import tjeng
 from main_code.rede_em_milp import fischetti
 
+
 def codify_network(modelo_em_tf, dataframe, metodo, num_de_slices=1):
     # modelo_em_tf: um arquivo.h5 lido
     # dataframe: lista lida de um csv
@@ -17,9 +18,7 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_slices=1):
     layers = modelo_em_tf.layers
 
     domain_input, bounds_input = get_domain_and_bounds_inputs(dataframe)
-
-    sliced_bounds_input, num_de_redes = sb.slice_bounds(bounds_input, num_de_slices)
-
+    sliced_bounds_input, num_de_redes = sb.slice_bounds_continous(bounds_input, domain_input, num_de_slices)
     lista_de_milp_models = instancia_mp_models(num_de_redes)
     lista_de_modelos_em_milp = []
     lista_de_output_bounds = []
