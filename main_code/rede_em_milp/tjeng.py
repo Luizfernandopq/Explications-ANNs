@@ -1,11 +1,13 @@
-
 def codify_network_tjeng(mdl, layers, input_variables, intermediate_variables, decision_variables, output_variables):
+
     output_bounds = []
 
     for i in range(len(layers)):
         A = layers[i].get_weights()[0].T
         b = layers[i].bias.numpy()
+
         x = input_variables if i == 0 else intermediate_variables[i-1]
+
         if i != (len(layers)-1):
             a = decision_variables[i]
             y = intermediate_variables[i]

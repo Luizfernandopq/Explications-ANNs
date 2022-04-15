@@ -42,7 +42,7 @@ def combine_sliced_bounds_all(slices, num_de_variaveis, num_de_slices):
 def slice_bounds_continous(bounds_input, domain_input, num_de_sets):
     # Esta função realiza slices apenas em variáveis contínuas
 
-    if num_de_sets < 2 or num_de_sets > 4:
+    if num_de_sets < 2:
         return [bounds_input], 1
 
     lista_de_bounds_input = []
