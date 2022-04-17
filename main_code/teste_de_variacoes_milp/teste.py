@@ -44,15 +44,6 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
     return mdl
 
 
-def get_explanation(lista_models, network_input, network_output, n_classes, method, output_bounds=None):
-    explanations = []
-    for index, mdl in enumerate(lista_models):
-        explanations.append(
-            get_miminal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds[index]))
-
-    return explanations
-
-
 def get_miminal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None):
     assert not (
             not method and output_bounds is None), 'If the method tjeng is chosen, output_bounds must be passed.'
@@ -82,118 +73,6 @@ def get_miminal_explanation(mdl, network_input, network_output, n_classes, metho
     return mdl.find_matching_linear_constraints('input')
 
 
-def main():
-    METODO_TJENG = False
-    METODO_FISCHETTI = True
-
-    datasets = [{'dir_path': 'australian', 'n_classes': 2},
-                {'dir_path': 'auto', 'n_classes': 5},
-                {'dir_path': 'backache', 'n_classes': 2},
-                {'dir_path': 'breast-cancer', 'n_classes': 2},
-                {'dir_path': 'cleve', 'n_classes': 2},
-                {'dir_path': 'cleveland', 'n_classes': 5},
-                {'dir_path': 'glass', 'n_classes': 5},
-                {'dir_path': 'glass2', 'n_classes': 2},
-                {'dir_path': 'heart-statlog', 'n_classes': 2},
-                {'dir_path': 'hepatitis', 'n_classes': 2},
-                {'dir_path': 'spect', 'n_classes': 2},
-                {'dir_path': 'voting', 'n_classes': 2}
-                ]
-
-    configurations = [{'method': METODO_FISCHETTI},
-                      {'method': METODO_TJENG}]
-
-    df = {'fischetti': {'size': [], 'milp_time': [], 'build_time': []},
-          'tjeng': {'size': [], 'milp_time': [], 'build_time': []}}
-
-    slices = [1, 2, 3]
-
-    for dataset in datasets:
-        dir_path = dataset['dir_path']
-        n_classes = dataset['n_classes']
-
-        for config in configurations:
-            print(dataset, config)
-
-            method = config['method']
-
-            data_test = pd.read_csv(f'../../datasets/{dir_path}/test.csv')
-            data_train = pd.read_csv(f'../../datasets/{dir_path}/train.csv')
-
-            data = data_train.append(data_test)
-
-            model_path = f'../../datasets/{dir_path}/model_1layers_40neurons_{dir_path}.h5'
-            model = tf.keras.models.load_model(model_path)
-
-            codify_network_time = []
-            for slice in slices:
-                start = time()
-                # mdl, output_bounds = mm.codify_network(model, data, method, slice)
-
-                lista_de_modelos_em_milp, lista_de_bounds = mm.codify_network(model, data, method, slice)
-
-                codify_network_time.append(time() - start)
-                print(codify_network_time[-1])
-
-            time_list = []
-            len_list = []
-            data = data.to_numpy()
-            print(data)
-            for i in range(data.shape[0]):
-                # if i % 50 == 0:
-                print(f'Unidade: {i}')
-                network_input = data[i, :-1]
-
-                network_input = tf.reshape(tf.constant(network_input), (1, -1))
-                network_output = model.predict(tf.constant(network_input))[0]
-                network_output = tf.argmax(network_output)
-
-                aux_lenlist = []
-                for j in range(len(lista_de_modelos_em_milp)):
-                    print(f'slice (max = {slices[j]}^{data.shape[1]}): {j + 1}')
-                    mdl_aux = lista_de_modelos_em_milp[j].clone()
-                    output_bounds = lista_de_bounds[j]
-                    start = time()
-
-                    explanation = get_miminal_explanation(mdl_aux, network_input, network_output,
-                                                          n_classes=n_classes, method=method,
-                                                          output_bounds=output_bounds)
-
-                    print(explanation)
-                    time_list.append(time() - start)
-                    aux_lenlist.append(len(explanation))
-
-                len_list.append(aux_lenlist)
-
-            print(f'\n{len_list}')
-
-            df[method]['size'].extend([min(len_list), f'{mean(len_list)} +- {stdev(len_list)}', max(len_list)])
-            df[method]['milp_time'].extend([min(time_list), f'{mean(time_list)} +- {stdev(time_list)}', max(time_list)])
-            df[method]['build_time'].extend([min(codify_network_time),
-                                             f'{mean(codify_network_time)} +- {stdev(codify_network_time)}',
-                                             max(codify_network_time)])
-
-            print(
-                f'Explication sizes:\nm: {min(len_list)}\na: {mean(len_list)} +- {stdev(len_list)}\nM: {max(len_list)}')
-            print(f'Time:\nm: {min(time_list)}\na: {mean(time_list)} +- {stdev(time_list)}\nM: {max(time_list)}')
-            print(
-                f'Build Time:\nm: {min(codify_network_time)}\na: {mean(codify_network_time)} +-'
-                f' {stdev(codify_network_time)}\nM: {max(codify_network_time)}')
-
-    df = {'fischetti_size': df[METODO_FISCHETTI]['size'],
-          'fischetti_time': df[METODO_FISCHETTI]['milp_time'],
-          'fischetti_build_time': df[METODO_FISCHETTI]['build_time'],
-          'tjeng_size': df[METODO_TJENG]['size'],
-          'tjeng_time': df[METODO_TJENG]['milp_time'],
-          'tjeng_build_time': df[METODO_TJENG]['build_time']}
-
-    index_label = []
-    for dataset in datasets:
-        index_label.extend([f"{dataset['dir_path']}_m", f"{dataset['dir_path']}_a", f"{dataset['dir_path']}_M"])
-    df = pd.DataFrame(data=df, index=index_label)
-    df.to_csv('results2.csv')
-
-
 def setup():
     datasets = [['australian', 2],
                 ['auto', 5],
@@ -213,68 +92,142 @@ def setup():
     return [datasets, configurations]
 
 
-if __name__ == '__main__':
-    # main()
+def test_get_explanation(models, network_input, network_output, n_classes, method, list_output_bounds=None):
+    assert not (
+            not method and list_output_bounds is None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
+    mdl = models[0]
+    # print(mdl, n_classes, method)
+    # print("input")
+    # print(network_input)
+    # print("output")
+    # print(network_output)
+    # print("bounds")
+    # print(list_output_bounds)
+
+    input_variables = [mdl.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
+    output_variables = [mdl.get_var_by_name(f'o_{i}') for i in range(n_classes)]
+    input_constraints = mdl.add_constraints(
+        [input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])], names='input')
+    binary_variables = mdl.binary_var_list(n_classes - 1, name='b')
+
+    mdl.add_constraint(mdl.sum(binary_variables) >= 1)
+
+    if not method:
+        mdl = insert_output_constraints_tjeng(mdl, output_variables, network_output, binary_variables,
+                                              list_output_bounds[0])
+    else:
+        mdl = insert_output_constraints_fischetti(mdl, output_variables, network_output,
+                                                  binary_variables)
+
+    for i in range(len(network_input[0])):
+        mdl.remove_constraint(input_constraints[i])
+
+        mdl.solve(log_output=False)
+        if mdl.solution is not None:
+            mdl.add_constraint(input_constraints[i])
+
+    return mdl.find_matching_linear_constraints('input')
+
+
+def main():
     METODO_TJENG = False
     METODO_FISCHETTI = True
+    NUM_DE_SLICES = 1
+    path_dir = 'glass'
+    n_classes = 5
 
-    datasets, configurations = setup()
+    modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/teste.h5')
 
-    for dataset in datasets:
-        dir_path = dataset[0]
-        n_classes = dataset[1]
+    data_test = pd.read_csv(f'../../datasets/{path_dir}/test.csv')
+    data_train = pd.read_csv(f'../../datasets/{path_dir}/train.csv')
+    data = data_train.append(data_test)
+    data = data[['RI', 'Na', 'target']]
+    data_aux = data.to_numpy()
 
-        data_test = pd.read_csv(f'../../datasets/{dir_path}/test.csv')
-        data_train = pd.read_csv(f'../../datasets/{dir_path}/train.csv')
+    lista_de_modelos_em_milp, lista_de_bounds = mm.codify_network(modelo_em_tf, data, METODO_TJENG, NUM_DE_SLICES)
+    for i in range(data_aux.shape[0]):
+        print(f'dado: {i}')
+        network_input = data_aux[i, :-1]
 
-        data = data_train.append(data_test)
-        print(data)
-        data_aux = data.to_numpy()
-        print(data_aux)
-        for neurons in configurations:  # 5 10 20 40
-            print(dataset, neurons)
+        network_input = tf.reshape(tf.constant(network_input), (1, -1))
+        network_output = modelo_em_tf.predict(tf.constant(network_input))[0]
+        network_output = tf.argmax(network_output)
 
-            model_path_1layer = f'../../datasets/{dir_path}/model_1layers_{neurons}neurons_{dir_path}.h5'
-            model_1layer = tf.keras.models.load_model(model_path_1layer)
+        mdl_aux = copia_modelos(lista_de_modelos_em_milp)
+        start = time()
 
-            model_path_2layers = f'../../datasets/{dir_path}/model_2layers_{neurons}neurons_{dir_path}.h5'
-            model_2layers = tf.keras.models.load_model(model_path_2layers)
+        explanation = test_get_explanation(mdl_aux, network_input, network_output, n_classes=n_classes,
+                                           method=METODO_TJENG, list_output_bounds=lista_de_bounds)
 
-            for sliced in range(1, 4):  # 1, 2, 3
-                print(f'slices: {sliced}')
-                for metodo in range(1, -1, -1):  # 1, 0
-                    print(f'metodo 1 = F, 0 = T: {metodo}')
-                    lista_de_modelos_em_milp_1layer, lista_de_bounds_1layer = mm.codify_network(model_1layer,
-                                                                                                data, metodo, sliced)
-                    lista_de_modelos_em_milp_2layers, lista_de_bounds_2layers = mm.codify_network(model_2layers,
-                                                                                                  data, metodo, sliced)
-                    for i in range(data_aux.shape[0]):
-                        print(f'dado: {i}')
-                        network_input = data_aux[i, :-1]
+        print(explanation)
+        print(time() - start)
 
-                        network_input_1layer = tf.reshape(tf.constant(network_input), (1, -1))
-                        network_output_1layer = model_1layer.predict(tf.constant(network_input_1layer))[0]
-                        network_output_1layer = tf.argmax(network_output_1layer)
+        print()
 
-                        network_input_2layers = tf.reshape(tf.constant(network_input), (1, -1))
-                        network_output_2layers = model_1layer.predict(tf.constant(network_input_2layers))[0]
-                        network_output_2layers = tf.argmax(network_output_2layers)
 
-                        mdl_1layer_aux = copia_modelos(lista_de_modelos_em_milp_1layer)
-                        mdl_2layers_aux = copia_modelos(lista_de_modelos_em_milp_2layers)
-                        start = time()
+if __name__ == '__main__':
+    main()
 
-                        explanation_1layer = get_explanation(mdl_1layer_aux, network_input_1layer,
-                                                             network_output_1layer,
-                                                             n_classes=n_classes, method=metodo,
-                                                             output_bounds=lista_de_bounds_1layer)
-
-                        print(explanation_1layer)
-                        print(time() - start)
-                        explanation_2layers = get_explanation(mdl_2layers_aux, network_input_2layers,
-                                                              network_output_2layers,
-                                                              n_classes=n_classes, method=metodo,
-                                                              output_bounds=lista_de_bounds_2layers)
-
-                        print(explanation_2layers)
+    # METODO_TJENG = False
+    # METODO_FISCHETTI = True
+    #
+    # datasets, configurations = setup()
+    #
+    # for dataset in datasets:
+    #     dir_path = dataset[0]
+    #     n_classes = dataset[1]
+    #
+    #     data_test = pd.read_csv(f'../../datasets/{dir_path}/test.csv')
+    #     data_train = pd.read_csv(f'../../datasets/{dir_path}/train.csv')
+    #
+    #     data = data_train.append(data_test)
+    #     print(data)
+    #     data_aux = data.to_numpy()
+    #     print(data_aux)
+    #     for neurons in configurations:  # 5 10 20 40
+    #         print(dataset, neurons)
+    #
+    #         model_path_1layer = f'../../datasets/{dir_path}/model_1layers_{neurons}neurons_{dir_path}.h5'
+    #         model_1layer = tf.keras.models.load_model(model_path_1layer)
+    #
+    #         model_path_2layers = f'../../datasets/{dir_path}/model_2layers_{neurons}neurons_{dir_path}.h5'
+    #         model_2layers = tf.keras.models.load_model(model_path_2layers)
+    #
+    #         for sliced in range(1, 4):  # 1, 2, 3
+    #             print(f'slices: {sliced}')
+    #             for metodo in range(1, -1, -1):  # 1, 0
+    #                 print(f'metodo 1 = F, 0 = T: {metodo}')
+    #                 lista_de_modelos_em_milp_1layer, lista_de_bounds_1layer = mm.codify_network(model_1layer,
+    #                                                                                             data, metodo, sliced)
+    #                 lista_de_modelos_em_milp_2layers, lista_de_bounds_2layers = mm.codify_network(model_2layers,
+    #                                                                                               data, metodo, sliced)
+    #                 for i in range(data_aux.shape[0]):
+    #                     print(f'dado: {i}')
+    #                     network_input = data_aux[i, :-1]
+    #
+    #                     network_input_1layer = tf.reshape(tf.constant(network_input), (1, -1))
+    #                     network_output_1layer = model_1layer.predict(tf.constant(network_input_1layer))[0]
+    #                     network_output_1layer = tf.argmax(network_output_1layer)
+    #
+    #                     network_input_2layers = tf.reshape(tf.constant(network_input), (1, -1))
+    #                     network_output_2layers = model_2layer.predict(tf.constant(network_input_2layers))[0]
+    #                     network_output_2layers = tf.argmax(network_output_2layers)
+    #
+    #                     mdl_1layer_aux = copia_modelos(lista_de_modelos_em_milp_1layer)
+    #                     mdl_2layers_aux = copia_modelos(lista_de_modelos_em_milp_2layers)
+    #                     start = time()
+    #
+    #                     explanation_1layer = get_explanation(mdl_1layer_aux, network_input_1layer,
+    #                                                          network_output_1layer,
+    #                                                          n_classes=n_classes, method=metodo,
+    #                                                          output_bounds=lista_de_bounds_1layer)
+    #
+    #                     # print(explanation_1layer)
+    #                     print(time() - start)
+    #                     explanation_2layers = get_explanation(mdl_2layers_aux, network_input_2layers,
+    #                                                           network_output_2layers,
+    #                                                           n_classes=n_classes, method=metodo,
+    #                                                           output_bounds=lista_de_bounds_2layers)
+    #
+    #                     # print(explanation_2layers)
