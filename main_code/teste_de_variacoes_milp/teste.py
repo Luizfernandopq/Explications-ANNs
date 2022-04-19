@@ -92,11 +92,9 @@ def setup():
     return [datasets, configurations]
 
 
-def test_get_explanation(models, network_input, network_output, n_classes, method, list_output_bounds=None):
-    assert not (
-            not method and list_output_bounds is None), 'If the method tjeng is chosen, output_bounds must be passed.'
+def test_get_explanation(list_models, list_input_bounds, network_input, network_output, n_classes, method, list_output_bounds):
 
-    mdl = models[0]
+    mdl = list_models[0]
     # print(mdl, n_classes, method)
     # print("input")
     # print(network_input)
@@ -133,7 +131,7 @@ def test_get_explanation(models, network_input, network_output, n_classes, metho
 def main():
     METODO_TJENG = False
     METODO_FISCHETTI = True
-    NUM_DE_SLICES = 1
+    NUM_DE_SLICES = 2
     path_dir = 'glass'
     n_classes = 5
 
@@ -146,7 +144,11 @@ def main():
     data_aux = data.to_numpy()
 
     lista_de_modelos_em_milp, lista_de_bounds = mm.codify_network(modelo_em_tf, data, METODO_TJENG, NUM_DE_SLICES)
+    list_input_bounds = lista_de_bounds[0]
+    list_output_bounds = lista_de_bounds[1]
+    print(list_input_bounds, list_output_bounds)
     for i in range(data_aux.shape[0]):
+        start = time()
         print(f'dado: {i}')
         network_input = data_aux[i, :-1]
 
@@ -155,15 +157,18 @@ def main():
         network_output = tf.argmax(network_output)
 
         mdl_aux = copia_modelos(lista_de_modelos_em_milp)
-        start = time()
 
-        explanation = test_get_explanation(mdl_aux, network_input, network_output, n_classes=n_classes,
-                                           method=METODO_TJENG, list_output_bounds=lista_de_bounds)
+        explanation = test_get_explanation(mdl_aux, list_input_bounds, network_input, network_output, n_classes,
+                                           METODO_TJENG, list_output_bounds)
 
         print(explanation)
         print(time() - start)
 
         print()
+
+
+def procura_index_rede_pivo(list_input_bounds, network_input, num_slices):
+    pass
 
 
 if __name__ == '__main__':

@@ -43,7 +43,7 @@ def slice_bounds_continous(bounds_input, domain_input, num_de_sets):
     # Esta função realiza slices apenas em variáveis contínuas
 
     if num_de_sets < 2:
-        return [bounds_input], 1
+        return [bounds_input], len(domain_input)
 
     lista_de_bounds_input = []
     contador_bounds_input = 0
@@ -61,13 +61,16 @@ def slice_bounds_continous(bounds_input, domain_input, num_de_sets):
         lista_de_bounds_input.append(slices)
         contador_bounds_input += 1
 
-    return combine_sliced_bounds_continous(lista_de_bounds_input, domain_input, contador_bounds_input, num_de_sets)
+    return lista_de_bounds_input, contador_bounds_input
 
 
 def combine_sliced_bounds_continous(slices, domain_input, num_de_variaveis, num_de_slices):
     # slices: lista com pares de valores -> representa os limites
     # superior e inferior de cada variável fatiada
     # num_de_slices: inteiro -> representa o número de fatias da variável slices
+
+    if num_de_slices < 2:
+        return np.array(slices), 1
 
     sliced_bounds_input = []
     num_de_arranjos = num_de_slices ** num_de_variaveis
