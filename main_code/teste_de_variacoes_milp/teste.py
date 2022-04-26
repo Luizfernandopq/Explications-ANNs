@@ -52,6 +52,7 @@ def get_miminal_explanation(mdl, network_input, network_output, n_classes, metho
     output_variables = [mdl.get_var_by_name(f'o_{i}') for i in range(n_classes)]
     input_constraints = mdl.add_constraints(
         [input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])], names='input')
+    print(f'input_constraints: {input_constraints}')
     binary_variables = mdl.binary_var_list(n_classes - 1, name='b')
 
     mdl.add_constraint(mdl.sum(binary_variables) >= 1)
@@ -92,49 +93,51 @@ def setup():
     return [datasets, configurations]
 
 
-def test_get_explanation(list_models, index_rede_pivo, domain_input, network_input, network_output, n_classes, method, list_output_bounds):
+def test_get_explanation(list_models, config, domain_input, network_input, network_output, list_output_bounds):
 
-    num_redes_uteis = len(list_models)
-    ponteiro = index_rede_pivo
+    list_models_aux = []
+    ponteiro_rede_pivo = config[0]
+    n_classes = config[1]
+    method = config[2]
+    num_slices = config[3]
     contador = 0
     fim_do_slice = False
-    while contador < num_redes_uteis:
-        mdl = list_models[ponteiro]
-        output_bounds = list_output_bounds[ponteiro]
-
-        input_variables = [mdl.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
-        output_variables = [mdl.get_var_by_name(f'o_{i}') for i in range(n_classes)]
-        input_constraints = mdl.add_constraints(
-            [input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])], names='input')
-        binary_variables = mdl.binary_var_list(n_classes - 1, name='b')
-
-        mdl.add_constraint(mdl.sum(binary_variables) >= 1)
-
-        if not method:
-            mdl = insert_output_constraints_tjeng(mdl, output_variables, network_output, binary_variables,
-                                                  output_bounds)
-        else:
-            mdl = insert_output_constraints_fischetti(mdl, output_variables, network_output,
-                                                      binary_variables)
-
-        for i in range(len(network_input[0])):
+    for i in range(len(network_input[0])):
+        list_input_constraints = []
+        for j in range(num_slices):
+            mdl = list_models[ponteiro_rede_pivo]
+            list_models_aux.append(mdl)
+            input_constraints = configura_rede(mdl, network_input, network_output, n_classes, method,
+                                               list_output_bounds[i])
             mdl.remove_constraint(input_constraints[i])
             mdl.solve(log_output=False)
             if mdl.solution is None:
-                if fim_do_slice:
-                    fim_do_slice = False
-
-                else:
-                    index_rede_pivo = (index_rede_pivo + 2 ** i) % num_redes_uteis
-                    fim_do_slice = True
-                    break
+                continue
             if mdl.solution is not None:
                 mdl.add_constraint(input_constraints[i])
-
-        contador += 1
+                list_models[ponteiro_rede_pivo].add_constraint(input_constraints[i])
 
     return mdl.find_matching_linear_constraints('input')
 
+
+def configura_rede(model, network_input, network_output,  n_classes, method, output_bounds):
+
+    input_variables = [model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
+    output_variables = [model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
+    input_constraints = model.add_constraints(
+        [input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])], names='input')
+    binary_variables = model.binary_var_list(n_classes - 1, name='b')
+
+    model.add_constraint(model.sum(binary_variables) >= 1)
+
+    if not method:
+        model = insert_output_constraints_tjeng(model, output_variables, network_output, binary_variables,
+                                              output_bounds)
+    else:
+        model = insert_output_constraints_fischetti(model, output_variables, network_output,
+                                                  binary_variables)
+
+    return input_constraints
 
 def main():
     METODO_TJENG = False
@@ -169,12 +172,16 @@ def main():
         network_output = modelo_em_tf.predict(tf.constant(network_input))[0]
         network_output = tf.argmax(network_output)
 
+        config = [index_rede_pivo, n_classes, METODO_TJENG, NUM_DE_SLICES]
+
         mdl_aux = copia_modelos(lista_de_modelos_em_milp)
 
-        explanation = test_get_explanation(mdl_aux, index_rede_pivo, domain_input, network_input, network_output,
-                                           n_classes, METODO_TJENG, list_output_bounds)
+        # explanation = test_get_explanation(mdl_aux, config, domain_input, network_input, network_output,
+        #                                    list_output_bounds)
+        explanation = get_miminal_explanation(mdl_aux[0], network_input, network_output, n_classes, METODO_TJENG,
+                                              list_output_bounds[0])
 
-        print(explanation)
+        # print(explanation)
         print(time() - start)
 
         print()
