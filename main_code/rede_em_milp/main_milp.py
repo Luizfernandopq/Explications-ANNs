@@ -90,7 +90,7 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_slices=1):
         if index > 5000:
             raise Exception("Muitas redes, talvez eu esteja travando")
 
-    return lista_de_milp_models, [sliced_bounds_input, lista_de_output_bounds]
+    return lista_de_milp_models, [combined_sliced_bounds_input, lista_de_output_bounds, domain_input]
 
 
 def atribui_input_variables(modelo_em_milp, domain_input, bounds_input):
