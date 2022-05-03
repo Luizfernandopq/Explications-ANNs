@@ -52,11 +52,9 @@ def get_miminal_explanation(mdl, network_input, network_output, n_classes, metho
     output_variables = [mdl.get_var_by_name(f'o_{i}') for i in range(n_classes)]
     input_constraints = mdl.add_constraints(
         [input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])], names='input')
-    print(f'input_constraints: {input_constraints}')
     binary_variables = mdl.binary_var_list(n_classes - 1, name='b')
 
     mdl.add_constraint(mdl.sum(binary_variables) >= 1)
-
     if not method:
         mdl = insert_output_constraints_tjeng(mdl, output_variables, network_output, binary_variables,
                                               output_bounds)
@@ -95,27 +93,45 @@ def setup():
 
 def test_get_explanation(list_models, config, domain_input, network_input, network_output, list_output_bounds):
 
-    list_models_aux = []
     ponteiro_rede_pivo = config[0]
     n_classes = config[1]
     method = config[2]
     num_slices = config[3]
-    contador = 0
-    fim_do_slice = False
+
+    list_index_models_uteis = []
+    list_input_constraints = []
+
+    list_index_models_uteis.append(procura_rede_inversa_by_var(0, ponteiro_rede_pivo))
+    list_input_constraints.append(configura_rede(list_models[list_index_models_uteis[0]], network_input, network_output, n_classes, method,
+                                            list_output_bounds[list_index_models_uteis[0]]))
+
+    index_var_irrelevantes = []
     for i in range(len(network_input[0])):
-        list_input_constraints = []
-        for j in range(num_slices):
-            mdl = list_models[ponteiro_rede_pivo]
-            list_models_aux.append(mdl)
-            input_constraints = configura_rede(mdl, network_input, network_output, n_classes, method,
-                                               list_output_bounds[i])
-            mdl.remove_constraint(input_constraints[i])
+        # index_var_irrelevantes.append(i)
+        list_index_models_uteis_aux = []
+        list_input_constraints_aux = []
+        for index, ponteiro_inversa in enumerate(list_index_models_uteis):
+            mdl = list_models[ponteiro_inversa]
+            mdl.remove_constraint(list_input_constraints[index][i])
             mdl.solve(log_output=False)
             if mdl.solution is None:
-                continue
-            if mdl.solution is not None:
+                ponteiro_pivo = procura_rede_inversa_by_var(i, ponteiro_inversa)
+                mdl = list_models[ponteiro_pivo]
+                output_bounds = list_output_bounds[ponteiro_pivo]
+                input_constraints = configura_rede(mdl, network_input, network_output, n_classes, method,
+                                                   output_bounds)
+                mdl.remove_constraint(input_constraints[i])
+                mdl.solve(log_output=False)
+                if mdl.solution is None:
+                    list_index_models_uteis_aux.append(ponteiro_pivo)
+                    list_input_constraints_aux.append(input_constraints)
+                    continue
+                else:
+                    mdl.add_constraint(input_constraints[i])
+                    break
+            else:
                 mdl.add_constraint(input_constraints[i])
-                list_models[ponteiro_rede_pivo].add_constraint(input_constraints[i])
+                break
 
     return mdl.find_matching_linear_constraints('input')
 
@@ -131,10 +147,10 @@ def configura_rede(model, network_input, network_output,  n_classes, method, out
     model.add_constraint(model.sum(binary_variables) >= 1)
 
     if not method:
-        model = insert_output_constraints_tjeng(model, output_variables, network_output, binary_variables,
+        insert_output_constraints_tjeng(model, output_variables, network_output, binary_variables,
                                               output_bounds)
     else:
-        model = insert_output_constraints_fischetti(model, output_variables, network_output,
+        insert_output_constraints_fischetti(model, output_variables, network_output,
                                                   binary_variables)
 
     return input_constraints
@@ -142,7 +158,7 @@ def configura_rede(model, network_input, network_output,  n_classes, method, out
 def main():
     METODO_TJENG = False
     METODO_FISCHETTI = True
-    NUM_DE_SLICES = 2
+    NUM_DE_SLICES = 1
     path_dir = 'glass'
     n_classes = 5
 
@@ -181,7 +197,7 @@ def main():
         explanation = get_miminal_explanation(mdl_aux[0], network_input, network_output, n_classes, METODO_TJENG,
                                               list_output_bounds[0])
 
-        # print(explanation)
+        print(explanation)
         print(time() - start)
 
         print()
@@ -203,6 +219,15 @@ def procura_index_rede_pivo(list_input_bounds, domain_input, network_input, num_
                 index_pivo = index_pivo + (num_slices ** (index_var - sem_slices))
 
     return index_pivo
+
+
+def procura_rede_inversa_by_var(index_var, index_rede_pivo):
+    index_var = 2 ** index_var
+
+    if (int(index_rede_pivo / index_var)) % 2:
+        return index_rede_pivo - index_var
+    else:
+        return index_rede_pivo + index_var
 
 
 if __name__ == '__main__':
