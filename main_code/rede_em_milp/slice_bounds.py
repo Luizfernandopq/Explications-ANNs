@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def slice_bounds_all(bounds_input, domain_input, num_de_sets):
+def slice_bounds_all(bounds_input, num_de_sets):
     if num_de_sets < 2 or num_de_sets > 4:
         return [bounds_input], 1
 
@@ -49,7 +49,7 @@ def slice_bounds_continous(bounds_input, domain_input, num_de_sets):
     contador_bounds_input = 0
     for linha in bounds_input:
         # se a variável não for contínua, não será fatiada
-        if domain_input[contador_bounds_input] != 'C':
+        if domain_input[contador_bounds_input] != 2:
             contador_bounds_input += 1
             lista_de_bounds_input.append([linha])
             continue
@@ -82,7 +82,7 @@ def combine_sliced_bounds_continous(slices, domain_input, num_de_variaveis, num_
         quebra = False
         for j in range(num_de_variaveis):
             indice = (int(i / num_de_slices ** j)) % num_de_slices
-            if domain_input[j] != 'C' and indice != 0:
+            if domain_input[j] != 2 and indice != 0:
                 num_de_arranjos -= 1
                 quebra = True
                 break

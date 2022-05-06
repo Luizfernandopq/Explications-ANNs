@@ -101,11 +101,11 @@ def atribui_input_variables(modelo_em_milp, domain_input, bounds_input):
     input_variables = []
     for i in range(len(domain_input)):
         lb, ub = bounds_input[i]
-        if domain_input[i] == 'C':
+        if domain_input[i] == 2:
             input_variables.append(modelo_em_milp.continuous_var(lb=lb, ub=ub, name=f'x_{i}'))
-        elif domain_input[i] == 'I':
+        elif domain_input[i] == 1:
             input_variables.append(modelo_em_milp.integer_var(lb=lb, ub=ub, name=f'x_{i}'))
-        elif domain_input[i] == 'B':
+        elif domain_input[i] == 0:
             input_variables.append(modelo_em_milp.binary_var(name=f'x_{i}'))
     return input_variables
 
@@ -121,23 +121,23 @@ def instancia_mp_models(num_de_modelos):
 
 def get_domain_and_bounds_inputs(dataframe):
     # retorna duas listas com os valores máximo e mínimo de domínio e limites de entrada
-
+    # domain = 0 -> binario, 1 -> inteiro, 2 -> continua
     domain = []
     bounds = []
     for column in dataframe.columns[:-1]:  # percorre o dataframe por colunas até a penultima coluna
         if len(dataframe[column].unique()) == 2:  # verifica se só há variáveis binárias
-            domain.append('B')
+            domain.append(0)
             bound_inf = dataframe[column].min()
             bound_sup = dataframe[column].max()
             bounds.append([bound_inf, bound_sup])
         elif np.any(dataframe[column].unique().astype(np.int64) !=
                     dataframe[column].unique().astype(np.float64)):
-            domain.append('C')
+            domain.append(2)
             bound_inf = dataframe[column].min()
             bound_sup = dataframe[column].max()
             bounds.append([bound_inf, bound_sup])
         else:
-            domain.append('I')
+            domain.append(1)
             bound_inf = dataframe[column].min()
             bound_sup = dataframe[column].max()
             bounds.append([bound_inf, bound_sup])
