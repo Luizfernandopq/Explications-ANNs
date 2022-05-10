@@ -31,7 +31,7 @@ def combine_sliced_bounds_all(slices, num_de_variaveis, num_de_slices):
     for i in range(num_de_arranjos):
         sliced_aux = []
         for j in range(num_de_variaveis):
-            variavel = num_de_variaveis - (j+1)
+            variavel = num_de_variaveis - (j + 1)
             indice = int(i / num_de_slices ** variavel)
             sliced_aux.append(slices[j][indice % num_de_slices])
         sliced_bounds_input.append(sliced_aux)
@@ -47,11 +47,12 @@ def slice_bounds_continous(bounds_input, domain_input, num_de_sets):
 
     lista_de_bounds_input = []
     contador_bounds_input = 0
+    variaveis_fatiadas = 0
     for linha in bounds_input:
         # se a variável não for contínua, não será fatiada
-        if domain_input[contador_bounds_input] != 'C':
-            contador_bounds_input += 1
+        if domain_input[contador_bounds_input] != 'C' : # or variaveis_fatiadas >= num_vars
             lista_de_bounds_input.append([linha])
+            contador_bounds_input += 1
             continue
 
         slices = []
@@ -60,6 +61,7 @@ def slice_bounds_continous(bounds_input, domain_input, num_de_sets):
             slices.append([linha[0] + amplitude_relativa * i, linha[0] + amplitude_relativa * (i + 1)])
         lista_de_bounds_input.append(slices)
         contador_bounds_input += 1
+        variaveis_fatiadas += 1
 
     return lista_de_bounds_input, contador_bounds_input
 
@@ -77,18 +79,21 @@ def combine_sliced_bounds_continous(slices, domain_input, num_de_variaveis, num_
     # num_de_arranjos: é um inteiro encontrado
     # a partir do número de fatias elevedado ao número de variáveis
 
+    num_fatias = 0
+
     for i in range(num_de_arranjos):
         sliced_aux = []
         quebra = False
         for j in range(num_de_variaveis):
             indice = (int(i / num_de_slices ** j)) % num_de_slices
-            if domain_input[j] != 'C' and indice != 0:
+            if (domain_input[j] != 'C' and indice != 0) : # or num_fatias >= num_vars
                 num_de_arranjos -= 1
                 quebra = True
                 break
 
             sliced_aux.append(slices[j][indice])
         if not quebra:
+            num_fatias += 1
             sliced_bounds_input.append(sliced_aux)
 
     return np.array(sliced_bounds_input), num_de_arranjos
