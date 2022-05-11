@@ -83,9 +83,13 @@ def setup():
     return [datasets, configurations]
 
 
-def test_get_explanation2(list_models, config, domain, network_input, network_output, list_output_bounds):
+def test_get_explanation2(list_models, config, d, network_input, network_output, list_output_bounds):
 
-    # start1 = time()
+    solucao_pivo = 0
+    solucao_inversa = 0
+    irrelevante = 0
+    ir_cont = 0
+
     ponteiro_rede_pivo = config[0]
     n_classes = config[1]
     method = config[2]
@@ -94,13 +98,13 @@ def test_get_explanation2(list_models, config, domain, network_input, network_ou
     copy_list_models = []
     list_index_models_uteis = []
     list_input_constraints = []
-    index_var_irrelevantes = []
 
     copy_list_models.append(list_models[ponteiro_rede_pivo].clone())
     list_index_models_uteis.append(ponteiro_rede_pivo)
     list_input_constraints.append(configura_rede(copy_list_models[0], network_input, network_output,
                                                  n_classes, method, list_output_bounds[ponteiro_rede_pivo], []))
-    # print("start 1: ", time() - start1)
+
+    index_var_irrelevantes = []
     for i in range(len(network_input[0])):
         index_var_irrelevantes.append(i)
         notvazio = False
@@ -108,26 +112,27 @@ def test_get_explanation2(list_models, config, domain, network_input, network_ou
         copy_list_models_aux = []
         list_index_models_uteis_pivo_aux = []
         list_input_constraints_pivo_aux = []
-        # start2 = time()
+
         for index, rede in enumerate(copy_list_models):
             rede.remove_constraint(list_input_constraints[index][i])
             rede.solve(log_output=False)
 
             if rede.solution is not None:
+                solucao_pivo += 1
                 index_var_irrelevantes.remove(i)
 
                 for j in range(index+1):
                     copy_list_models[j].add_constraint(list_input_constraints[j][i])
-
                 break
-        # print("start 2: ", time() - start2)
 
-        if domain[i] != 2:
+        if d[i] != 'C':
+            if i in index_var_irrelevantes:
+                ir_cont += 1
             decremento += 1
             continue
         if i not in index_var_irrelevantes:
             continue
-        # start3 = time()
+
         for index, ponteiro in enumerate(list_index_models_uteis):
             inversa = procura_rede_inversa_by_var(i - decremento, ponteiro)
             copy = list_models[inversa].clone()
@@ -143,21 +148,170 @@ def test_get_explanation2(list_models, config, domain, network_input, network_ou
                 list_input_constraints_pivo_aux.append(input_constraints)
                 continue
             else:
+                solucao_inversa += 1
                 index_var_irrelevantes.remove(i)
-
                 for j, rede in enumerate(copy_list_models):
                     rede.add_constraint(list_input_constraints[j][i])
-
                 notvazio = True
-                # print("start 3: ", time() - start3)
+                break
+        if notvazio:
+            continue
+        irrelevante += 1
+        copy_list_models.extend(copy_list_models_aux)
+        list_index_models_uteis.extend(list_index_models_uteis_pivo_aux)
+        list_input_constraints.extend(list_input_constraints_pivo_aux)
+
+    print("pivo, inv, vazio")
+    print(solucao_pivo, solucao_inversa, irrelevante)
+    return [copy_list_models[0].find_matching_linear_constraints('input'), [solucao_pivo, solucao_inversa, irrelevante, ir_cont]]
+
+
+def test_get_explanation3(list_models, config, d, network_input, network_output, list_output_bounds):
+
+    solucao_pivo = 0
+    solucao_inversa = 0
+    irrelevante = 0
+    ir_cont = 0
+
+    ponteiro_rede_pivo = config[0]
+    n_classes = config[1]
+    method = config[2]
+    decremento = 0
+
+    copy_list_models = []
+    list_index_models_uteis = []
+    list_input_constraints = []
+
+    copy_list_models.append(list_models[ponteiro_rede_pivo].clone())
+    list_index_models_uteis.append(ponteiro_rede_pivo)
+    list_input_constraints.append(configura_rede(copy_list_models[0], network_input, network_output,
+                                                 n_classes, method, list_output_bounds[ponteiro_rede_pivo], []))
+
+    index_var_irrelevantes = []
+    for i in range(len(network_input[0])):
+        index_var_irrelevantes.append(i)
+        notvazio = False
+
+        copy_list_models_aux = []
+        list_index_models_uteis_pivo_aux = []
+        list_input_constraints_pivo_aux = []
+
+        for index, rede in enumerate(copy_list_models):
+            rede.remove_constraint(list_input_constraints[index][i])
+            rede.solve(log_output=False)
+
+            if rede.solution is not None:
+                solucao_pivo += 1
+                index_var_irrelevantes.remove(i)
+
+                for j in range(index+1):
+                    copy_list_models[j].add_constraint(list_input_constraints[j][i])
 
                 break
 
-        if notvazio:
+        if d[i] != 'C':
+            if i in index_var_irrelevantes:
+                ir_cont += 1
+            decremento += 1
+            continue
+        if i not in index_var_irrelevantes:
             continue
 
-        # print("start 4: ", time() - start3)
+        for index, ponteiro in enumerate(list_index_models_uteis):
+            inversa = procura_rede_inversa_by_var(i - decremento, ponteiro)
+            copy = list_models[inversa].clone()
+            output_bounds = list_output_bounds[inversa]
+            input_constraints = configura_rede(copy, network_input, network_output, n_classes, method,
+                                               output_bounds, index_var_irrelevantes)
+
+            copy.solve()
+
+            if copy.solution is None:
+                copy_list_models_aux.append(copy)
+                list_index_models_uteis_pivo_aux.append(inversa)
+                list_input_constraints_pivo_aux.append(input_constraints)
+                continue
+            else:
+                solucao_inversa += 1
+                index_var_irrelevantes.remove(i)
+                for j, rede in enumerate(copy_list_models):
+                    rede.add_constraint(list_input_constraints[j][i])
+                notvazio = True
+                break
+        if notvazio:
+            continue
+        irrelevante += 1
         copy_list_models.extend(copy_list_models_aux)
+        list_index_models_uteis.extend(list_index_models_uteis_pivo_aux)
+        list_input_constraints.extend(list_input_constraints_pivo_aux)
+
+    print("pivo, inv, vazio")
+    print(solucao_pivo, solucao_inversa, irrelevante)
+    return [copy_list_models[0].find_matching_linear_constraints('input'), [solucao_pivo, solucao_inversa, irrelevante, ir_cont]]
+
+
+def test_get_explanation(list_models, config, domain_input, network_input, network_output, list_output_bounds):
+
+    ponteiro_rede_pivo = config[0]
+    n_classes = config[1]
+    method = config[2]
+
+    copy_list_models = []
+    list_index_models_uteis = []
+    list_input_constraints = []
+
+    copy_list_models.append(list_models[ponteiro_rede_pivo].copy())
+    list_index_models_uteis.append(ponteiro_rede_pivo)
+    list_input_constraints.append(configura_rede(list_models[ponteiro_rede_pivo], network_input, network_output,
+                                                 n_classes, method, list_output_bounds[list_index_models_uteis[0]], []))
+
+    index_var_irrelevantes = []
+    for i in range(len(network_input[0])):
+        index_var_irrelevantes.append(i)
+        list_index_models_uteis_pivo_aux = []
+        list_input_constraints_pivo_aux = []
+        for index, ponteiro_pivo in enumerate(list_index_models_uteis):
+            mdl = list_models[ponteiro_pivo]
+            mdl.remove_constraint(list_input_constraints[index][i])
+            mdl.solve(log_output=False)
+
+            if mdl.solution is None:
+                ponteiro_inversa = procura_rede_inversa_by_var(i, ponteiro_pivo)
+                mdl = list_models[ponteiro_inversa]
+                output_bounds = list_output_bounds[ponteiro_inversa]
+                input_constraints = configura_rede(mdl, network_input, network_output, n_classes, method,
+                                                   output_bounds, index_var_irrelevantes)
+
+                mdl.solve(log_output=False)
+
+                if mdl.solution is None:
+                    print(f'if 2 {i}')
+
+                    list_index_models_uteis_pivo_aux.append(ponteiro_inversa)
+                    list_input_constraints_pivo_aux.append(input_constraints)
+                    continue
+
+                else:
+                    index_var_irrelevantes.remove(i)
+                    print(f'else 1 {i}')
+                    for j in range(index + 1):
+                        list_models[list_index_models_uteis[j]].add_constraint(list_input_constraints[j][i])
+
+                    list_index_models_uteis_pivo_aux = []
+                    list_input_constraints_pivo_aux = []
+                    break
+            else:
+                index_var_irrelevantes.remove(i)
+                print(f'else 2 {i}')
+
+                for j in range(index+1):
+                    list_models[list_index_models_uteis[j]].add_constraint(list_input_constraints[j][i])
+
+                list_index_models_uteis_pivo_aux = []
+                list_input_constraints_pivo_aux = []
+                break
+
+        # print("start 4: ", time() - start3)
         list_index_models_uteis.extend(list_index_models_uteis_pivo_aux)
         list_input_constraints.extend(list_input_constraints_pivo_aux)
 
