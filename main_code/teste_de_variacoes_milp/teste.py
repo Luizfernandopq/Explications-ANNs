@@ -83,6 +83,7 @@ def setup():
     return [datasets, configurations]
 
 
+# lembrar de tentar fatiar pelo final
 def test_get_explanation2(list_models, config, d, network_input, network_output, list_output_bounds):
 
     solucao_pivo = 0
@@ -93,6 +94,8 @@ def test_get_explanation2(list_models, config, d, network_input, network_output,
     ponteiro_rede_pivo = config[0]
     n_classes = config[1]
     method = config[2]
+    limit = config[3]
+    limit_aux = 0
     decremento = 0
 
     copy_list_models = []
@@ -125,11 +128,12 @@ def test_get_explanation2(list_models, config, d, network_input, network_output,
                     copy_list_models[j].add_constraint(list_input_constraints[j][i])
                 break
 
-        if d[i] != 'C':
+        if d[i] != 2 or limit_aux >= limit:
             if i in index_var_irrelevantes:
                 ir_cont += 1
             decremento += 1
             continue
+        limit_aux += 1
         if i not in index_var_irrelevantes:
             continue
 
@@ -318,6 +322,10 @@ def test_get_explanation(list_models, config, domain_input, network_input, netwo
     return [copy_list_models[0].find_matching_linear_constraints('input')]
 
 
+def test_get_explanation_recursive():
+    pass
+
+
 def configura_rede(model, network_input, network_output,  n_classes, method, output_bounds, list_irr_var):
 
     input_variables = [model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
@@ -341,9 +349,9 @@ def configura_rede(model, network_input, network_output,  n_classes, method, out
 def main():
     METODO_TJENG = False
     METODO_FISCHETTI = True
-    NUM_DE_SLICES = 2
-    path_dir = 'australian'
-    n_classes = 2
+    NUM_SLICED_VARS = 4
+    path_dir = 'glass'
+    n_classes = 5
 
     modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_1layers_5neurons_{path_dir}.h5')
 
@@ -355,7 +363,7 @@ def main():
     # data = data[['RI', 'Na', 'target']]
     data_aux = data.to_numpy()
 
-    lista_de_modelos_em_milp, lista_de_bounds = mm.codify_network(modelo_em_tf, data, METODO_FISCHETTI, NUM_DE_SLICES)
+    lista_de_modelos_em_milp, lista_de_bounds = mm.codify_network(modelo_em_tf, data, METODO_FISCHETTI, NUM_SLICED_VARS)
     list_input_bounds = lista_de_bounds[0]
     list_output_bounds = lista_de_bounds[1]
     domain_input = lista_de_bounds[2]
@@ -367,15 +375,15 @@ def main():
         start = time()
         network_input = data_aux[i, :-1]
 
-        index_rede_pivo = procura_index_rede_pivo(list_input_bounds, domain_input, network_input, NUM_DE_SLICES)
+        index_rede_pivo = procura_index_rede_pivo(list_input_bounds, domain_input, network_input, NUM_SLICED_VARS)
 
         network_input = tf.reshape(tf.constant(network_input), (1, -1))
         network_output = modelo_em_tf.predict(tf.constant(network_input))[0]
         network_output = tf.argmax(network_output)
 
-        config = [index_rede_pivo, n_classes, METODO_FISCHETTI, NUM_DE_SLICES]
+        config = [index_rede_pivo, n_classes, METODO_FISCHETTI, NUM_SLICED_VARS]
 
-        if NUM_DE_SLICES == 1:
+        if NUM_SLICED_VARS == 0:
             mdl_aux = lista_de_modelos_em_milp[0].clone()
             explanation = get_miminal_explanation(mdl_aux, network_input, network_output, n_classes, METODO_FISCHETTI,
                                                   list_output_bounds[0])
@@ -393,18 +401,18 @@ def main():
     print(times)
 
 
-def procura_index_rede_pivo(list_input_bounds, domain_input, network_input, num_slices):
+def procura_index_rede_pivo(list_input_bounds, domain_input, network_input, limit):
     index_pivo = 0
+    limit_aux = 0
     sem_slices = 0
     for index_var, input_var in enumerate(network_input):
-        if domain_input[index_var] != 2:
+        if domain_input[index_var] != 2 or limit_aux >= limit:
             sem_slices += 1
             continue
-        for _ in range(num_slices - 1):
-            if list_input_bounds[index_pivo][index_var][1] >= input_var >= list_input_bounds[index_pivo][index_var][0]:
-                continue
-            else:
-                index_pivo = index_pivo + (num_slices ** (index_var - sem_slices))
+
+        if list_input_bounds[index_pivo][index_var][1] < input_var:
+            index_pivo = index_pivo + (2 ** (index_var - sem_slices))
+        limit_aux += 1
 
     return index_pivo
 

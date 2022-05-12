@@ -11,11 +11,11 @@ from main_code.rede_em_milp import tjeng
 from main_code.rede_em_milp import fischetti
 
 
-def codify_network(modelo_em_tf, dataframe, metodo, num_de_slices=1):
+def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
     # modelo_em_tf: um arquivo.h5 lido
     # dataframe: lista - lida de um csv
     # metodo: booleano - 0 para "tjeng" - 1 para "fischetti"
-    # num_de_slices: inteiro indicando as fatias da rede
+    # num_de_sliced_var: inteiro indicando as variáveis fatiáveis da rede
 
     layers = modelo_em_tf.layers
     domain_input, bounds_input = get_domain_and_bounds_inputs(dataframe)
@@ -23,12 +23,13 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_slices=1):
     # print(domain_input)
     # print(bounds_input)
 
-    sliced_bounds_input, num_variaveis = sb.slice_bounds_continous(bounds_input, domain_input, num_de_slices)
-    combined_sliced_bounds_input, num_de_redes = sb.combine_sliced_bounds_continous(sliced_bounds_input, domain_input,
-                                                                                    num_variaveis, num_de_slices)
-    print(f'Redes: {num_de_redes}')
-    lista_de_milp_models = instancia_mp_models(num_de_redes)
+    if num_de_sliced_var > 0:
+        sliced_bounds_input, num_redes = sb.slice_continous_var_list(bounds_input, domain_input, num_de_sliced_var)
+    else:
+        sliced_bounds_input = [bounds_input]
+        num_redes = 1
 
+    lista_de_milp_models = instancia_mp_models(num_redes)
 
     lista_de_modelos_em_milp = []
     lista_de_output_bounds = []
@@ -39,7 +40,7 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_slices=1):
 
     for index, milp_model in enumerate(lista_de_milp_models):
 
-        input_variables = atribui_input_variables(milp_model, domain_input, combined_sliced_bounds_input[index])
+        input_variables = atribui_input_variables(milp_model, domain_input, sliced_bounds_input[index])
 
         # print("INPUT VARIABLES")
         # print(input_variables)
@@ -90,7 +91,7 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_slices=1):
         if index > 5000:
             raise Exception("Muitas redes, talvez eu esteja travando")
 
-    return lista_de_milp_models, [combined_sliced_bounds_input, lista_de_output_bounds, domain_input]
+    return lista_de_milp_models, [sliced_bounds_input, lista_de_output_bounds, domain_input]
 
 
 def atribui_input_variables(modelo_em_milp, domain_input, bounds_input):
@@ -148,8 +149,8 @@ def get_domain_and_bounds_inputs(dataframe):
 if __name__ == '__main__':
     METODO_TJENG = False
     METODO_FISCHETTI = True
-    NUM_DE_SLICES = 2
-    path_dir = 'australian'
+    NUM_SLICED_VARS = 3
+    path_dir = 'glass'
 
     modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_1layers_5neurons_{path_dir}.h5')
 
@@ -160,11 +161,11 @@ if __name__ == '__main__':
     data = data_train.append(data_test)
     # data = data[['RI', 'Na', 'target']]
 
-    lista_de_modelos_em_milp, lista_de_bounds = codify_network(modelo_em_tf, data, METODO_FISCHETTI, NUM_DE_SLICES)
+    lista_de_modelos_em_milp, lista_de_bounds = codify_network(modelo_em_tf, data, METODO_FISCHETTI, NUM_SLICED_VARS)
 
     for i in range(len(lista_de_modelos_em_milp)):
         # print(lista_de_modelos_em_milp[i].export_to_string())
-        print(lista_de_bounds[i])
+        print(lista_de_bounds[0][i])
 
 # X ---- E
 # x1 == 1 /\ x2 == 3 /\ F /\ ~E    INSATISFÁTIVEL

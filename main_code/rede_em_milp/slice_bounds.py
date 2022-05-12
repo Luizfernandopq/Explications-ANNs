@@ -1,6 +1,55 @@
 import numpy as np
 
 
+def slice_continous_var_list(bounds_input, domain, limit_of_sliced_vars):
+    limit_aux = 0
+    list_var_to_slice = []
+
+    for index, tipo in enumerate(domain):
+        if tipo == 2 and limit_aux < limit_of_sliced_vars:
+            list_var_to_slice.append(index)
+            limit_aux += 1
+    list_bounds_input = [bounds_input]
+
+    if limit_of_sliced_vars > limit_aux:
+        raise Exception('Não há variáveis suficientes para fatiar')
+
+    for index in list_var_to_slice[::-1]:
+        list_bounds_input = slice_bounds_by_var(list_bounds_input, index)
+
+    print("num de redes:", 2**len(list_var_to_slice))
+    return list_bounds_input, 2**len(list_var_to_slice)
+
+
+def slice_bounds_by_var(list_bounds_input, index_var):
+    list_bounds_input_aux = []
+
+    for bounds_input in list_bounds_input:
+
+        amplitude_relativa = (bounds_input[index_var][1] - bounds_input[index_var][0]) / 2
+
+        # primeira fatia
+        bound_input_aux = bounds_input[index_var].copy()
+        bound_input_aux[1] -= amplitude_relativa
+        bounds_input[index_var] = bound_input_aux.copy()
+        list_bounds_input_aux.append(bounds_input.copy())
+
+        # segunda fatia
+        bound_input_aux = bounds_input[index_var].copy()
+        bound_input_aux[0] += amplitude_relativa
+        bound_input_aux[1] += amplitude_relativa
+        bounds_input[index_var] = bound_input_aux.copy()
+        list_bounds_input_aux.append(bounds_input.copy())
+
+    return list_bounds_input_aux
+
+
+'''
+    Abaixo há funções para auxiliar na lógica geral das funções acima 
+    (Estas funções não estão sendo utilizadas e são obsoletas)
+'''
+
+
 def slice_bounds_all(bounds_input, num_de_sets):
     if num_de_sets < 2 or num_de_sets > 4:
         return [bounds_input], 1
@@ -51,7 +100,7 @@ def slice_bounds_continous(bounds_input, domain_input, num_de_sets):
     for linha in bounds_input:
         # se a variável não for contínua, não será fatiada
 
-        if domain_input[contador_bounds_input] != 'C' : # or variaveis_fatiadas >= num_vars
+        if domain_input[contador_bounds_input] != 2 : # or variaveis_fatiadas >= num_vars
             lista_de_bounds_input.append([linha])
             contador_bounds_input += 1
             continue
@@ -87,7 +136,7 @@ def combine_sliced_bounds_continous(slices, domain_input, num_de_variaveis, num_
         quebra = False
         for j in range(num_de_variaveis):
             indice = (int(i / num_de_slices ** j)) % num_de_slices
-            if (domain_input[j] != 'C' and indice != 0) : # or num_fatias >= num_vars
+            if (domain_input[j] != 2 and indice != 0) : # or num_fatias >= num_vars
                 num_de_arranjos -= 1
                 quebra = True
                 break
@@ -98,12 +147,6 @@ def combine_sliced_bounds_continous(slices, domain_input, num_de_variaveis, num_
             sliced_bounds_input.append(sliced_aux)
 
     return np.array(sliced_bounds_input), num_de_arranjos
-
-
-'''
-    Abaixo há funções para auxiliar na lógica geral das funções acima 
-    (Estas funções não estão sendo utilizadas e são obsoletas)
-'''
 
 
 def converter_para_maximo_da_base(num_de_digitos, base):
