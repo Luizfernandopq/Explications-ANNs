@@ -24,9 +24,11 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
     # print(bounds_input)
 
     if num_de_sliced_var > 0:
-        sliced_bounds_input, num_redes = sb.slice_continous_var_list(bounds_input, domain_input, num_de_sliced_var)
+        sliced_bounds_input, list_var_sliced = sb.slice_continous_var_list(bounds_input, domain_input, num_de_sliced_var)
+        num_redes = list_var_sliced[0]
     else:
         sliced_bounds_input = [bounds_input]
+        list_var_sliced = [1, []]
         num_redes = 1
 
     lista_de_milp_models = instancia_mp_models(num_redes)
@@ -91,7 +93,7 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
         if index > 5000:
             raise Exception("Muitas redes, talvez eu esteja travando")
 
-    return lista_de_milp_models, [sliced_bounds_input, lista_de_output_bounds, domain_input]
+    return lista_de_milp_models, [sliced_bounds_input, lista_de_output_bounds, list_var_sliced[1]]
 
 
 def atribui_input_variables(modelo_em_milp, domain_input, bounds_input):
@@ -150,7 +152,7 @@ if __name__ == '__main__':
     METODO_TJENG = False
     METODO_FISCHETTI = True
     NUM_SLICED_VARS = 3
-    path_dir = 'glass'
+    path_dir = 'australian'
 
     modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_1layers_5neurons_{path_dir}.h5')
 

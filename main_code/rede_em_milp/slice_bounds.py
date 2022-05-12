@@ -4,21 +4,21 @@ import numpy as np
 def slice_continous_var_list(bounds_input, domain, limit_of_sliced_vars):
     limit_aux = 0
     list_var_to_slice = []
-
-    for index, tipo in enumerate(domain):
+    len_domain_minus1 = len(domain) - 1
+    for index, tipo in enumerate(domain[::-1]):
         if tipo == 2 and limit_aux < limit_of_sliced_vars:
-            list_var_to_slice.append(index)
+            list_var_to_slice.append(len_domain_minus1 - index)
             limit_aux += 1
     list_bounds_input = [bounds_input]
-
     if limit_of_sliced_vars > limit_aux:
         raise Exception('Não há variáveis suficientes para fatiar')
 
-    for index in list_var_to_slice[::-1]:
+    for index in list_var_to_slice:
         list_bounds_input = slice_bounds_by_var(list_bounds_input, index)
 
     print("num de redes:", 2**len(list_var_to_slice))
-    return list_bounds_input, 2**len(list_var_to_slice)
+
+    return list_bounds_input, [2**len(list_var_to_slice), list_var_to_slice[::-1]]
 
 
 def slice_bounds_by_var(list_bounds_input, index_var):
