@@ -20,9 +20,6 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
     layers = modelo_em_tf.layers
     domain_input, bounds_input = get_domain_and_bounds_inputs(dataframe)
 
-    # print(domain_input)
-    # print(bounds_input)
-
     if num_de_sliced_var > 0:
         sliced_bounds_input, list_var_sliced = sb.slice_continous_var_list(bounds_input, domain_input, num_de_sliced_var)
         num_redes = list_var_sliced[0]
@@ -44,33 +41,21 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
 
         input_variables = atribui_input_variables(milp_model, domain_input, sliced_bounds_input[index])
 
-        # print("INPUT VARIABLES")
-        # print(input_variables)
-
         intermediate_variables = []
         auxiliary_variables = []
         decision_variables = []
         for i in range(len(layers) - 1):
             weights = layers[i].get_weights()[0]
 
-            # print(weights[0], weights[1])
-
             intermediate_variables.append(
                 milp_model.continuous_var_list(weights.shape[1], lb=0, name='y', key_format=f"_{i}_%s"))
-
-            # print("INTERMEDIATE VARIABLES")
-            # print(intermediate_variables)
 
             if metodo:
                 auxiliary_variables.append(
                     milp_model.continuous_var_list(weights.shape[1], lb=0, name='s', key_format=f"_{i}_%s"))
 
-            # print(auxiliary_variables)
-
             decision_variables.append(
                 milp_model.binary_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
-
-            # print(decision_variables)
 
         output_variables = milp_model.continuous_var_list(layers[-1].get_weights()[0].shape[1], lb=-infinity, name='o')
 
@@ -90,6 +75,7 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
 
         lista_de_modelos_em_milp.append(modelo_em_milp)
         lista_de_output_bounds.append(output_bounds)
+
         if index > 5000:
             raise Exception("Muitas redes, talvez eu esteja travando")
 
@@ -114,7 +100,8 @@ def atribui_input_variables(modelo_em_milp, domain_input, bounds_input):
 
 
 def instancia_mp_models(num_de_modelos):
-    # retorna uma lista de mp.Model
+    # return -> uma lista de mp.Model
+
     lista_de_mp_models = []
     for _ in range(num_de_modelos):
         m = mp.Model()
@@ -123,8 +110,10 @@ def instancia_mp_models(num_de_modelos):
 
 
 def get_domain_and_bounds_inputs(dataframe):
-    # retorna duas listas com os valores máximo e mínimo de domínio e limites de entrada
-    # domain = 0 -> binario, 1 -> inteiro, 2 -> continua
+    # return -> duas listas com os valores máximo e mínimo de domínio e limites de entrada:
+    #           domain = 0 -> binario, 1 -> inteiro, 2 -> continua
+    #           bounds = [[min, max],...]
+
     domain = []
     bounds = []
     for column in dataframe.columns[:-1]:  # percorre o dataframe por colunas até a penultima coluna

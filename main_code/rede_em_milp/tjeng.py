@@ -39,16 +39,8 @@ def codify_network_tjeng(mdl, layers, input_variables, intermediate_variables, d
                 mdl.add_constraint(y[j] >= A[j, :] @ x + b[j])
                 mdl.add_constraint(y[j] <= ub * a[j])
 
-                #modelo_em_milp.maximize(y[j])
-                #modelo_em_milp.solve()
-                #ub_y = modelo_em_milp.solution.get_objective_value()
-                #modelo_em_milp.remove_objective()
-                #y[j].set_ub(ub_y)
-
             else:
                 mdl.add_constraint(A[j, :] @ x + b[j] == y[j])
-                #y[j].set_ub(ub)
-                #y[j].set_lb(lb)
                 output_bounds.append([lb, ub])
 
     return mdl, output_bounds

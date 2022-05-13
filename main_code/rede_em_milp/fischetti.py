@@ -1,5 +1,6 @@
 def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, intermediate_variables,
                              decision_variables, output_variables):
+
     output_bounds = []
 
     for i in range(len(layers)):
@@ -15,13 +16,9 @@ def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, 
         else:
             y = output_variables
 
-        # print(y, s, a)
-
         for j in range(A.shape[0]):
 
             if i != len(layers) - 1:
-
-                # print(f'neurom: {i} {j}')
 
                 mdl.add_constraint(A[j, :] @ x + b[j] == y[j] - s[j], ctname=f'c_{i}_{j}')
                 mdl.add_indicator(a[j], y[j] <= 0, 1)
@@ -51,6 +48,7 @@ def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, 
                 s[j].set_ub(ub_s)
 
             else:
+
                 mdl.add_constraint(A[j, :] @ x + b[j] == y[j], ctname=f'c_{i}_{j}')
 
                 mdl.maximize(y[j])

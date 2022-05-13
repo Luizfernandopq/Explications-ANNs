@@ -8,7 +8,7 @@ def slice_continous_var_list(bounds_input, domain, limit_of_sliced_vars):
     #
     # return -> lista com bounds input duplicada n vezes em variáveis contínuas,
     #           na qual n é o valor de limit_of_sliced_vars
-    
+
     limit_aux = 0
     list_var_to_slice = []
     len_domain_minus1 = len(domain) - 1
