@@ -20,11 +20,15 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
     layers = modelo_em_tf.layers
     domain_input, bounds_input = get_domain_and_bounds_inputs(dataframe)
 
+    # print(domain_input)
+
     if num_de_sliced_var > 0:
         sliced_bounds_input, list_var_sliced = sb.slice_continous_var_list(bounds_input, domain_input, num_de_sliced_var)
         num_redes = list_var_sliced[0]
+        print(f'Redes: {num_redes}')
     else:
         sliced_bounds_input = [bounds_input]
+        sliced_bounds_input = np.array(sliced_bounds_input)
         list_var_sliced = [1, []]
         num_redes = 1
 
@@ -110,6 +114,8 @@ def instancia_mp_models(num_de_modelos):
 
 
 def get_domain_and_bounds_inputs(dataframe):
+    # As varíaveis inteiras não serão mais utilizadas nesse experimento.
+
     # return -> duas listas com os valores máximo e mínimo de domínio e limites de entrada:
     #           domain = 0 -> binario, 1 -> inteiro, 2 -> continua
     #           bounds = [[min, max],...]
@@ -129,10 +135,11 @@ def get_domain_and_bounds_inputs(dataframe):
             bound_sup = dataframe[column].max()
             bounds.append([bound_inf, bound_sup])
         else:
-            domain.append(1)
-            bound_inf = dataframe[column].min()
-            bound_sup = dataframe[column].max()
-            bounds.append([bound_inf, bound_sup])
+            continue
+            # domain.append(1)
+            # bound_inf = dataframe[column].min()
+            # bound_sup = dataframe[column].max()
+            # bounds.append([bound_inf, bound_sup])
 
     return domain, bounds
 
@@ -140,16 +147,18 @@ def get_domain_and_bounds_inputs(dataframe):
 if __name__ == '__main__':
     METODO_TJENG = False
     METODO_FISCHETTI = True
-    NUM_SLICED_VARS = 3
+    NUM_SLICED_VARS = 0
     path_dir = 'australian'
 
-    modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_1layers_5neurons_{path_dir}.h5')
+    modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_no_int_1layers_10neurons_{path_dir}.h5')
 
     # modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/teste.h5')
 
     data_test = pd.read_csv(f'../../datasets/{path_dir}/test.csv')
     data_train = pd.read_csv(f'../../datasets/{path_dir}/train.csv')
+
     data = data_train.append(data_test)
+
     # data = data[['RI', 'Na', 'target']]
 
     lista_de_modelos_em_milp, lista_de_bounds = codify_network(modelo_em_tf, data, METODO_FISCHETTI, NUM_SLICED_VARS)

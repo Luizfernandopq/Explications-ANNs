@@ -7,6 +7,9 @@ import pandas as pd
 from main_code.rede_em_milp import main_milp as mm
 
 
+# Métodos já existentes
+
+
 def insert_output_constraints_fischetti(mdl, output_variables, network_output, binary_variables):
     variable_output = output_variables[network_output]
     aux_var = 0
@@ -64,23 +67,28 @@ def get_miminal_explanation(mdl, network_input, network_output, n_classes, metho
     return mdl.find_matching_linear_constraints('input')
 
 
-def setup():
-    datasets = [['australian', 2],
-                ['auto', 5],
-                ['backache', 2],
-                ['breast-cancer', 2],
-                ['cleve', 2],
-                ['cleveland', 5],
-                ['glass', 5],
-                ['glass2', 2],
-                ['heart-statlog', 2],
-                ['hepatitis', 2],
-                ['spect', 2],
-                ['voting', 2]]
+# Métodos com novas abordagens
 
-    configurations = [5, 10, 20, 40]
 
-    return [datasets, configurations]
+def configura_rede(model, network_input, network_output,  n_classes, method, output_bounds, list_irr_var):
+
+    input_variables = [model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
+    output_variables = [model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
+    input_constraints = model.add_constraints(
+        [input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])], names='input')
+    binary_variables = model.binary_var_list(n_classes - 1, name='b')
+
+    model.add_constraint(model.sum(binary_variables) >= 1)
+
+    if not method:
+        insert_output_constraints_tjeng(model, output_variables, network_output, binary_variables,
+                                        output_bounds)
+    else:
+        insert_output_constraints_fischetti(model, output_variables, network_output,
+                                            binary_variables)
+    for i in list_irr_var:
+        model.remove_constraint(input_constraints[i])
+    return input_constraints
 
 
 def test_get_explanation2(list_models, config, list_var_sliced, network_input, network_output, list_output_bounds):
@@ -163,11 +171,6 @@ def test_get_explanation2(list_models, config, list_var_sliced, network_input, n
 
 def test_get_explanation(list_models, config, list_var_sliced, network_input, network_output, list_output_bounds):
 
-    solucao_pivo = 0
-    solucao_inversa = 0
-    irrelevante = 0
-    ir_cont = 0
-
     ponteiro_rede_pivo = config[0]
     n_classes = config[1]
     method = config[2]
@@ -194,11 +197,8 @@ def test_get_explanation(list_models, config, list_var_sliced, network_input, ne
             rede.remove_constraint(list_input_constraints[index][i])
             rede.solve(log_output=False)
 
-            if(len(copy_list_models) == index+1 and len(copy_list_models) >= 2):
-                ir_cont += 1
-
             if rede.solution is not None:
-                solucao_pivo += 1
+
                 index_var_irrelevantes.remove(i)
 
                 for j in range(index+1):
@@ -223,50 +223,71 @@ def test_get_explanation(list_models, config, list_var_sliced, network_input, ne
                 list_input_constraints_pivo_aux.append(input_constraints)
                 continue
             else:
-                solucao_inversa += 1
                 index_var_irrelevantes.remove(i)
                 for j, rede in enumerate(copy_list_models):
                     rede.add_constraint(list_input_constraints[j][i])
                 notvazio = True
                 break
+
         if notvazio:
             continue
-        irrelevante += 1
+
         copy_list_models.extend(copy_list_models_aux)
         list_index_models_uteis.extend(list_index_models_uteis_pivo_aux)
         list_input_constraints.extend(list_input_constraints_pivo_aux)
 
-    return [copy_list_models[0].find_matching_linear_constraints('input'), [solucao_pivo, solucao_inversa, irrelevante, ir_cont]]
+    return copy_list_models[0].find_matching_linear_constraints('input')
 
 
-def configura_rede(model, network_input, network_output,  n_classes, method, output_bounds, list_irr_var):
+def procura_index_rede_pivo(list_input_bounds, list_var_sliced, network_input):
+    index_pivo = 0
 
-    input_variables = [model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
-    output_variables = [model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
-    input_constraints = model.add_constraints(
-        [input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])], names='input')
-    binary_variables = model.binary_var_list(n_classes - 1, name='b')
+    for index_enum, index_var in enumerate(list_var_sliced):
+        if list_input_bounds[index_pivo][index_var][1] < network_input[index_var]:
+            index_pivo += 2 ** index_enum
 
-    model.add_constraint(model.sum(binary_variables) >= 1)
+    return index_pivo
 
-    if not method:
-        insert_output_constraints_tjeng(model, output_variables, network_output, binary_variables,
-                                        output_bounds)
+
+def procura_rede_inversa_by_var(index_var, index_rede_pivo):
+    index_var = 2 ** index_var
+
+    if (int(index_rede_pivo / index_var)) % 2:
+        return index_rede_pivo - index_var
     else:
-        insert_output_constraints_fischetti(model, output_variables, network_output,
-                                            binary_variables)
-    for i in list_irr_var:
-        model.remove_constraint(input_constraints[i])
-    return input_constraints
+        return index_rede_pivo + index_var
+
+
+# Rotinas de testes
+
+
+def setup():
+    datasets = [['australian', 2],
+                ['auto', 5],
+                ['backache', 2],
+                ['breast-cancer', 2],
+                ['cleve', 2],
+                ['cleveland', 5],
+                ['glass', 5],
+                ['glass2', 2],
+                ['heart-statlog', 2],
+                ['hepatitis', 2],
+                ['spect', 2],
+                ['voting', 2]]
+
+    configurations = [5, 10, 20, 40]
+
+    return [datasets, configurations]
+
 
 def main():
     METODO_TJENG = False
     METODO_FISCHETTI = True
-    NUM_SLICED_VARS = 9
+    NUM_SLICED_VARS = 2
     path_dir = 'glass'
     n_classes = 5
 
-    modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_1layers_5neurons_{path_dir}.h5')
+    modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_2layers_40neurons_{path_dir}.h5')
 
     # modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/teste.h5')
 
@@ -308,36 +329,17 @@ def main():
                                                   list_output_bounds[0])
 
         else:
-            explanation = test_get_explanation2(lista_de_modelos_em_milp, config, list_vars_sliced,
-                                                network_input, network_output, list_output_bounds)
+            explanation = test_get_explanation(lista_de_modelos_em_milp, config, list_vars_sliced,
+                                               network_input, network_output, list_output_bounds)
 
-        print(explanation[1][3])
-        count += explanation[1][3]
+        # print(explanation[1][3])
+        # count += explanation[1][3]
         print(time() - start)
         times += time() - start
 
         print()
     print(count/205)
     print(times)
-
-
-def procura_index_rede_pivo(list_input_bounds, list_var_sliced, network_input):
-    index_pivo = 0
-
-    for index_enum, index_var in enumerate(list_var_sliced):
-        if list_input_bounds[index_pivo][index_var][1] < network_input[index_var]:
-            index_pivo += 2 ** index_enum
-
-    return index_pivo
-
-
-def procura_rede_inversa_by_var(index_var, index_rede_pivo):
-    index_var = 2 ** index_var
-
-    if (int(index_rede_pivo / index_var)) % 2:
-        return index_rede_pivo - index_var
-    else:
-        return index_rede_pivo + index_var
 
 
 if __name__ == '__main__':
