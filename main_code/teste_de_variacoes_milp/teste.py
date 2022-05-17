@@ -271,13 +271,15 @@ def setup():
                 ['glass', 5],
                 ['glass2', 2],
                 ['heart-statlog', 2],
-                ['hepatitis', 2],
-                ['spect', 2],
-                ['voting', 2]]
+                ['hepatitis', 2]]
 
     configurations = [5, 10, 20, 40]
 
     return [datasets, configurations]
+
+
+def rotina1():
+    pass
 
 
 def main():

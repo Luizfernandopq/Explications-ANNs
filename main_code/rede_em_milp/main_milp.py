@@ -25,7 +25,9 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
     if num_de_sliced_var > 0:
         sliced_bounds_input, list_var_sliced = sb.slice_continous_var_list(bounds_input, domain_input, num_de_sliced_var)
         num_redes = list_var_sliced[0]
-        print(f'Redes: {num_redes}')
+
+        # print(f'Redes: {num_redes}')
+
     else:
         sliced_bounds_input = [bounds_input]
         sliced_bounds_input = np.array(sliced_bounds_input)
@@ -36,10 +38,6 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
 
     lista_de_modelos_em_milp = []
     lista_de_output_bounds = []
-
-    total = 0
-    freq = 0
-    tempo_total = time()
 
     for index, milp_model in enumerate(lista_de_milp_models):
 

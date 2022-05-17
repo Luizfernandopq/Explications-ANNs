@@ -99,9 +99,7 @@ def setup():
                 ['glass', 5],
                 ['glass2', 2],
                 ['heart-statlog', 2],
-                ['hepatitis', 2],
-                ['spect', 2],
-                ['voting', 2]]
+                ['hepatitis', 2]]
 
     neurons = [10, 32, 64]
 
