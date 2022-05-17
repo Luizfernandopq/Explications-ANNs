@@ -23,7 +23,8 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
     # print(domain_input)
 
     if num_de_sliced_var > 0:
-        sliced_bounds_input, list_var_sliced = sb.slice_continous_var_list(bounds_input, domain_input, num_de_sliced_var)
+        sliced_bounds_input, list_var_sliced = sb.slice_continous_var_list(bounds_input, domain_input,
+                                                                           num_de_sliced_var)
         num_redes = list_var_sliced[0]
 
         # print(f'Redes: {num_redes}')
@@ -36,8 +37,8 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
 
     lista_de_milp_models = instancia_mp_models(num_redes)
 
-    lista_de_modelos_em_milp = []
     lista_de_output_bounds = []
+    results = []
 
     for index, milp_model in enumerate(lista_de_milp_models):
 
@@ -62,26 +63,26 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
         output_variables = milp_model.continuous_var_list(layers[-1].get_weights()[0].shape[1], lb=-infinity, name='o')
 
         if not metodo:
-            modelo_em_milp, output_bounds = tjeng.codify_network_tjeng(milp_model, layers,
-                                                                       input_variables,
-                                                                       intermediate_variables,
-                                                                       decision_variables,
-                                                                       output_variables)
+            output_bounds, result = tjeng.codify_network_tjeng(milp_model, layers,
+                                                                input_variables,
+                                                                intermediate_variables,
+                                                                decision_variables,
+                                                                output_variables)
         else:
-            modelo_em_milp, output_bounds = fischetti.codify_network_fischetti(milp_model, layers,
-                                                                               input_variables,
-                                                                               auxiliary_variables,
-                                                                               intermediate_variables,
-                                                                               decision_variables,
-                                                                               output_variables)
+            output_bounds, result = fischetti.codify_network_fischetti(milp_model, layers,
+                                                                        input_variables,
+                                                                        auxiliary_variables,
+                                                                        intermediate_variables,
+                                                                        decision_variables,
+                                                                        output_variables)
 
-        lista_de_modelos_em_milp.append(modelo_em_milp)
         lista_de_output_bounds.append(output_bounds)
+        results.append(result)
 
         if index > 5000:
             raise Exception("Muitas redes, talvez eu esteja travando")
 
-    return lista_de_milp_models, [sliced_bounds_input, lista_de_output_bounds, list_var_sliced[1]]
+    return [lista_de_milp_models, sliced_bounds_input, lista_de_output_bounds, list_var_sliced[1]], results
 
 
 def atribui_input_variables(modelo_em_milp, domain_input, bounds_input):
@@ -145,7 +146,7 @@ def get_domain_and_bounds_inputs(dataframe):
 if __name__ == '__main__':
     METODO_TJENG = False
     METODO_FISCHETTI = True
-    NUM_SLICED_VARS = 0
+    NUM_SLICED_VARS = 1
     path_dir = 'australian'
 
     modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_no_int_1layers_10neurons_{path_dir}.h5')
@@ -159,11 +160,12 @@ if __name__ == '__main__':
 
     # data = data[['RI', 'Na', 'target']]
 
-    lista_de_modelos_em_milp, lista_de_bounds = codify_network(modelo_em_tf, data, METODO_FISCHETTI, NUM_SLICED_VARS)
+    modelo, results = codify_network(modelo_em_tf, data, METODO_TJENG, NUM_SLICED_VARS)
 
-    for i in range(len(lista_de_modelos_em_milp)):
+    for i in range(len(modelo[0])):
+
         # print(lista_de_modelos_em_milp[i].export_to_string())
-        print(lista_de_bounds[0][i])
+        print(modelo[2][i])
 
 # X ---- E
 # x1 == 1 /\ x2 == 3 /\ F /\ ~E    INSATISFÁTIVEL

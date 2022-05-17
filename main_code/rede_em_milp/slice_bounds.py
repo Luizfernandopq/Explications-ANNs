@@ -23,8 +23,6 @@ def slice_continous_var_list(bounds_input, domain, limit_of_sliced_vars):
     for index in list_var_to_slice:
         list_bounds_input = slice_bounds_by_var(list_bounds_input, index)
 
-    print("num de redes:", 2**len(list_var_to_slice))
-
     return np.array(list_bounds_input), [2**len(list_var_to_slice), list_var_to_slice[::-1]]
 
 

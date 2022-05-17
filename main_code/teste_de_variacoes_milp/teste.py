@@ -273,80 +273,112 @@ def setup():
                 ['heart-statlog', 2],
                 ['hepatitis', 2]]
 
-    configurations = [5, 10, 20, 40]
+    configurations = [10, 32, 64]
 
     return [datasets, configurations]
 
 
-def rotina1():
-    pass
+def rotina_1():
+    # METODO_TJENG = False
+    # METODO_FISCHETTI = True
+
+    rede_setup = setup()
+
+    dataset_time = []
+
+    for metodo in range(2):
+        if metodo:
+            print("Fischetti")
+        else:
+            print("Tjeng")
+
+        for dataset in rede_setup[0]:
+            start = time()
+            dir_path = dataset[0]
+
+            data_test = pd.read_csv(f'../../datasets/{dir_path}/test.csv')
+            data_train = pd.read_csv(f'../../datasets/{dir_path}/train.csv')
+
+            data = data_train.append(data_test)
+
+            for layers in range(1, 5):
+                for n_neurons in rede_setup[1]:
+                    for slices in range(4):
+                        start2 = time()
+
+                        modelo_em_tf = tf.keras.models.load_model(
+                            f'../../datasets/{dir_path}/model_no_int_{layers}layers_{n_neurons}neurons_{dir_path}.h5')
+                        modelo, results = mm.codify_network(modelo_em_tf, data, metodo, slices)
+
+                        print(f'{layers}layer {n_neurons}neuron {slices}slices codificado! tempo: {time() - start2}')
+
+            print(f'{dir_path} codificado! tempo: {time() - start}')
 
 
 def main():
-    METODO_TJENG = False
-    METODO_FISCHETTI = True
+    # METODO_TJENG = False
+    # METODO_FISCHETTI = True
     NUM_SLICED_VARS = 2
     path_dir = 'glass'
     n_classes = 5
 
-    modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_2layers_40neurons_{path_dir}.h5')
+    # modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_2layers_40neurons_{path_dir}.h5')
+    #
+    # # modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/teste.h5')
+    #
+    # data_test = pd.read_csv(f'../../datasets/{path_dir}/test.csv')
+    # data_train = pd.read_csv(f'../../datasets/{path_dir}/train.csv')
+    # data = data_train.append(data_test)
+    # # data = data[['RI', 'Na', 'target']]
+    # data_aux = data.to_numpy()
+    #
+    # lista_de_modelos_em_milp, lista_de_bounds = mm.codify_network(modelo_em_tf, data, METODO_FISCHETTI, NUM_SLICED_VARS)
+    #
+    # list_input_bounds = lista_de_bounds[0]
+    # list_output_bounds = lista_de_bounds[1]
+    # list_vars_sliced = lista_de_bounds[2]
+    #
+    # # print(np.array(list_input_bounds))
+    # count = 0
+    # times = 0
+    # for i in range(data_aux.shape[0]):
+    #     print(f'dado: {i}')
+    #
+    #     start = time()
+    #     network_input = data_aux[i, :-1]
+    #
+    #     index_rede_pivo = procura_index_rede_pivo(list_input_bounds, list_vars_sliced, network_input)
+    #
+    #     # print(network_input)
+    #     # print(list_input_bounds[index_rede_pivo])
+    #
+    #     network_input = tf.reshape(tf.constant(network_input), (1, -1))
+    #     network_output = modelo_em_tf.predict(tf.constant(network_input))[0]
+    #     network_output = tf.argmax(network_output)
+    #
+    #     config = [index_rede_pivo, n_classes, METODO_FISCHETTI]
+    #
+    #     if NUM_SLICED_VARS == 0:
+    #         mdl_aux = lista_de_modelos_em_milp[0].clone()
+    #         explanation = get_miminal_explanation(mdl_aux, network_input, network_output, n_classes, METODO_FISCHETTI,
+    #                                               list_output_bounds[0])
+    #
+    #     else:
+    #         explanation = test_get_explanation(lista_de_modelos_em_milp, config, list_vars_sliced,
+    #                                            network_input, network_output, list_output_bounds)
+    #
+    #     # print(explanation[1][3])
+    #     # count += explanation[1][3]
+    #     print(time() - start)
+    #     times += time() - start
+    #
+    #     print()
+    # print(count/205)
+    # print(times)
 
-    # modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/teste.h5')
 
-    data_test = pd.read_csv(f'../../datasets/{path_dir}/test.csv')
-    data_train = pd.read_csv(f'../../datasets/{path_dir}/train.csv')
-    data = data_train.append(data_test)
-    # data = data[['RI', 'Na', 'target']]
-    data_aux = data.to_numpy()
-
-    lista_de_modelos_em_milp, lista_de_bounds = mm.codify_network(modelo_em_tf, data, METODO_FISCHETTI, NUM_SLICED_VARS)
-
-    list_input_bounds = lista_de_bounds[0]
-    list_output_bounds = lista_de_bounds[1]
-    list_vars_sliced = lista_de_bounds[2]
-
-    # print(np.array(list_input_bounds))
-    count = 0
-    times = 0
-    for i in range(data_aux.shape[0]):
-        print(f'dado: {i}')
-
-        start = time()
-        network_input = data_aux[i, :-1]
-
-        index_rede_pivo = procura_index_rede_pivo(list_input_bounds, list_vars_sliced, network_input)
-
-        # print(network_input)
-        # print(list_input_bounds[index_rede_pivo])
-
-        network_input = tf.reshape(tf.constant(network_input), (1, -1))
-        network_output = modelo_em_tf.predict(tf.constant(network_input))[0]
-        network_output = tf.argmax(network_output)
-
-        config = [index_rede_pivo, n_classes, METODO_FISCHETTI]
-
-        if NUM_SLICED_VARS == 0:
-            mdl_aux = lista_de_modelos_em_milp[0].clone()
-            explanation = get_miminal_explanation(mdl_aux, network_input, network_output, n_classes, METODO_FISCHETTI,
-                                                  list_output_bounds[0])
-
-        else:
-            explanation = test_get_explanation(lista_de_modelos_em_milp, config, list_vars_sliced,
-                                               network_input, network_output, list_output_bounds)
-
-        # print(explanation[1][3])
-        # count += explanation[1][3]
-        print(time() - start)
-        times += time() - start
-
-        print()
-    print(count/205)
-    print(times)
-
-
-if __name__ == '__main__':
-    main()
-
+def rotina_3():
+    pass
     # METODO_TJENG = False
     # METODO_FISCHETTI = True
     #
@@ -409,3 +441,7 @@ if __name__ == '__main__':
     #                                                           output_bounds=lista_de_bounds_2layers)
     #
     #                     # print(explanation_2layers)
+
+
+if __name__ == '__main__':
+    rotina_1()
