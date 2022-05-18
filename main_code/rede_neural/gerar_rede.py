@@ -93,7 +93,6 @@ def setup():
     datasets = [['australian', 2],
                 ['auto', 5],
                 ['backache', 2],
-                ['breast-cancer', 2],
                 ['cleve', 2],
                 ['cleveland', 5],
                 ['glass', 5],

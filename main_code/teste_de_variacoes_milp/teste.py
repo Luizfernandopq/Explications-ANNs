@@ -265,7 +265,6 @@ def setup():
     datasets = [['australian', 2],
                 ['auto', 5],
                 ['backache', 2],
-                ['breast-cancer', 2],
                 ['cleve', 2],
                 ['cleveland', 5],
                 ['glass', 5],
@@ -285,7 +284,6 @@ def rotina_1():
     rede_setup = setup()
 
     dataset_time = []
-
     for metodo in range(2):
         if metodo:
             print("Fischetti")
@@ -293,6 +291,13 @@ def rotina_1():
             print("Tjeng")
 
         for dataset in rede_setup[0]:
+            df = {
+                'metodo': [],
+                'camadas': [],
+                'neurônios': [],
+                'slices': [],
+                'tempo': []
+            }
             start = time()
             dir_path = dataset[0]
 
@@ -301,7 +306,8 @@ def rotina_1():
 
             data = data_train.append(data_test)
 
-            for layers in range(1, 5):
+            for layers in range(1, 4):
+
                 for n_neurons in rede_setup[1]:
                     for slices in range(4):
                         start2 = time()
@@ -310,9 +316,73 @@ def rotina_1():
                             f'../../datasets/{dir_path}/model_no_int_{layers}layers_{n_neurons}neurons_{dir_path}.h5')
                         modelo, results = mm.codify_network(modelo_em_tf, data, metodo, slices)
 
-                        print(f'{layers}layer {n_neurons}neuron {slices}slices codificado! tempo: {time() - start2}')
+                        if metodo:
+                            df['metodo'].append('fischetti')
+                        else:
+                            df['metodo'].append('tjeng')
+                        df['camadas'].append(layers)
+                        df['neurônios'].append(n_neurons)
+                        df['slices'].append(slices)
+                        df['tempo'].append(time()-start2)
 
+            df = pd.DataFrame(df)
+            print(df)
             print(f'{dir_path} codificado! tempo: {time() - start}')
+            df.to_csv(f'rotina_1_{dir_path}.csv')
+
+
+def rotina_2():
+    # METODO_TJENG = False
+    # METODO_FISCHETTI = True
+
+    rede_setup = setup()
+
+    dataset_time = []
+    for metodo in range(2):
+        if metodo:
+            print("Fischetti")
+        else:
+            print("Tjeng")
+
+        for dataset in rede_setup[0]:
+            df = {
+                'metodo': [],
+                'camadas': [],
+                'neurônios': [],
+                'slices': [],
+                'tempo': []
+            }
+            start = time()
+            dir_path = dataset[0]
+
+            data_test = pd.read_csv(f'../../datasets/{dir_path}/test.csv')
+            data_train = pd.read_csv(f'../../datasets/{dir_path}/train.csv')
+
+            data = data_train.append(data_test)
+
+            for layers in range(1, 4):
+
+                for n_neurons in rede_setup[1]:
+                    for slices in range(4):
+                        start2 = time()
+
+                        modelo_em_tf = tf.keras.models.load_model(
+                            f'../../datasets/{dir_path}/model_no_int_{layers}layers_{n_neurons}neurons_{dir_path}.h5')
+                        modelo, results = mm.codify_network(modelo_em_tf, data, metodo, slices)
+                        
+                        if metodo:
+                            df['metodo'].append('fischetti')
+                        else:
+                            df['metodo'].append('tjeng')
+                        df['camadas'].append(layers)
+                        df['neurônios'].append(n_neurons)
+                        df['slices'].append(slices)
+                        df['tempo'].append(time()-start2)
+
+            df = pd.DataFrame(df)
+            print(df)
+            print(f'{dir_path} codificado! tempo: {time() - start}')
+            df.to_csv(f'rotina_1_{dir_path}.csv')
 
 
 def main():
