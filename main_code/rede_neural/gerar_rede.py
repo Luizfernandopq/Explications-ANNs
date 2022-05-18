@@ -101,7 +101,7 @@ def setup():
                 ['heart-statlog', 2],
                 ['hepatitis', 2]]
 
-    neurons = [10, 32, 64]
+    neurons = [8, 16, 32]
 
     return [datasets, neurons]
 

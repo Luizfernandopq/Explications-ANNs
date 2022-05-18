@@ -273,7 +273,7 @@ def setup():
                 ['heart-statlog', 2],
                 ['hepatitis', 2]]
 
-    configurations = [10, 32, 64]
+    configurations = [8, 16, 32]
 
     return [datasets, configurations]
 
