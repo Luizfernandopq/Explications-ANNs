@@ -369,7 +369,7 @@ def rotina_2():
                         modelo_em_tf = tf.keras.models.load_model(
                             f'../../datasets/{dir_path}/model_no_int_{layers}layers_{n_neurons}neurons_{dir_path}.h5')
                         modelo, results = mm.codify_network(modelo_em_tf, data, metodo, slices)
-                        
+
                         if metodo:
                             df['metodo'].append('fischetti')
                         else:
