@@ -1,7 +1,7 @@
 def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, intermediate_variables,
                              decision_variables, output_variables):
-    # retorna ->        Objetos do modelo                   Variáveis de análise
-    #            [Obj mp.Model, list[min, max]], [ub_y_menor_ou_igual_zero, ub_s_menor_ou_igual_zero, ub_y_ub_s_padrao]
+    # retorna ->        Bounds do modelo                   Variáveis de análise
+    #                    list[min, max]], [ub_y_menor_ou_igual_zero, ub_s_menor_ou_igual_zero, ub_y_ub_s_padrao]
 
     # Variáveis de análise:
     ub_y_less0 = 0

@@ -350,9 +350,11 @@ def rotina_2():
                 'camadas': [],
                 'neurônios': [],
                 'slices': [],
-                'tempo': []
+                'ub_y<=0': [],
+                'lb_y>=0': [],
+                'sem_simplificação': [],
+                'total': []
             }
-            start = time()
             dir_path = dataset[0]
 
             data_test = pd.read_csv(f'../../datasets/{dir_path}/test.csv')
@@ -364,12 +366,11 @@ def rotina_2():
 
                 for n_neurons in rede_setup[1]:
                     for slices in range(4):
-                        start2 = time()
 
                         modelo_em_tf = tf.keras.models.load_model(
                             f'../../datasets/{dir_path}/model_no_int_{layers}layers_{n_neurons}neurons_{dir_path}.h5')
                         modelo, results = mm.codify_network(modelo_em_tf, data, metodo, slices)
-                        
+
                         if metodo:
                             df['metodo'].append('fischetti')
                         else:
@@ -377,12 +378,15 @@ def rotina_2():
                         df['camadas'].append(layers)
                         df['neurônios'].append(n_neurons)
                         df['slices'].append(slices)
-                        df['tempo'].append(time()-start2)
+                        df['ub_y<=0'].append(results[0])
+                        df['lb_y>=0'].append(results[1])
+                        df['sem_simplificação'].append(results[2])
+                        df['total'].append(results[0]+results[1]+results[2])
 
             df = pd.DataFrame(df)
             print(df)
-            print(f'{dir_path} codificado! tempo: {time() - start}')
-            df.to_csv(f'rotina_1_{dir_path}.csv')
+            print(f'{dir_path} codificado!')
+            df.to_csv(f'rotina_2_{dir_path}.csv')
 
 
 def main():

@@ -38,7 +38,7 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
     lista_de_milp_models = instancia_mp_models(num_redes)
 
     lista_de_output_bounds = []
-    results = []
+    results = [0, 0, 0]
 
     for index, milp_model in enumerate(lista_de_milp_models):
 
@@ -77,7 +77,9 @@ def codify_network(modelo_em_tf, dataframe, metodo, num_de_sliced_var=0):
                                                                         output_variables)
 
         lista_de_output_bounds.append(output_bounds)
-        results.append(result)
+        results[0] += result[0]
+        results[1] += result[1]
+        results[2] += result[2]
 
         if index > 5000:
             raise Exception("Muitas redes, talvez eu esteja travando")

@@ -1,6 +1,6 @@
 def codify_network_tjeng(mdl, layers, input_variables, intermediate_variables, decision_variables, output_variables):
-    # retorna ->        Objetos do modelo                   Variáveis de análise
-    #            [Obj mp.Model, list[min, max]], [ub_menor_ou_igual_zero, lb_maior_ou_igual_zero, ub_lb_padrao]
+    # retorna ->        Bounds do modelo                   Variáveis de análise
+    #                    list[min, max], [ub_menor_ou_igual_zero, lb_maior_ou_igual_zero, ub_lb_padrao]
 
     # Variáveis de análise:
     ub_y_less0 = 0
