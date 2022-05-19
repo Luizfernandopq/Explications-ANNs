@@ -283,7 +283,6 @@ def rotina_1():
 
     rede_setup = setup()
 
-    dataset_time = []
     for metodo in range(2):
         if metodo:
             print("Fischetti")
@@ -309,6 +308,7 @@ def rotina_1():
             for layers in range(1, 4):
 
                 for n_neurons in rede_setup[1]:
+
                     for slices in range(4):
                         start2 = time()
 
@@ -325,11 +325,12 @@ def rotina_1():
                         df['slices'].append(slices)
                         df['tempo'].append(time()-start2)
 
+            metodo_aux = df['metodo'][0]
+            df.pop('metodo')
             df = pd.DataFrame(df)
             print(df)
             print(f'{dir_path} codificado! tempo: {time() - start}')
-            df.to_csv(f'rotina_1_{dir_path}.csv')
-
+            df.to_csv(f'{dir_path}_{metodo_aux}_f1.csv')
 
 def rotina_2():
     # METODO_TJENG = False
@@ -337,7 +338,6 @@ def rotina_2():
 
     rede_setup = setup()
 
-    dataset_time = []
     for metodo in range(2):
         if metodo:
             print("Fischetti")
@@ -365,6 +365,7 @@ def rotina_2():
             for layers in range(1, 4):
 
                 for n_neurons in rede_setup[1]:
+
                     for slices in range(4):
 
                         modelo_em_tf = tf.keras.models.load_model(
@@ -383,10 +384,12 @@ def rotina_2():
                         df['sem_simplificação'].append(results[2])
                         df['total'].append(results[0]+results[1]+results[2])
 
+            metodo_aux = df['metodo'][0]
+            df.pop('metodo')
             df = pd.DataFrame(df)
             print(df)
             print(f'{dir_path} codificado!')
-            df.to_csv(f'rotina_2_{dir_path}.csv')
+            df.to_csv(f'{dir_path}_{metodo_aux}_f2.csv')
 
 
 def main():
@@ -519,3 +522,4 @@ def rotina_3():
 
 if __name__ == '__main__':
     rotina_1()
+    rotina_2()
