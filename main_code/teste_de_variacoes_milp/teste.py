@@ -70,8 +70,7 @@ def get_miminal_explanation(mdl, network_input, network_output, n_classes, metho
 # Métodos com novas abordagens
 
 
-def configura_rede(model, network_input, network_output,  n_classes, method, output_bounds, list_irr_var):
-
+def configura_rede(model, network_input, network_output, n_classes, method, output_bounds, list_irr_var):
     input_variables = [model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
     output_variables = [model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
     input_constraints = model.add_constraints(
@@ -92,7 +91,6 @@ def configura_rede(model, network_input, network_output,  n_classes, method, out
 
 
 def test_get_explanation2(list_models, config, list_var_sliced, network_input, network_output, list_output_bounds):
-
     solucao_pivo = 0
     solucao_inversa = 0
     irrelevante = 0
@@ -124,14 +122,14 @@ def test_get_explanation2(list_models, config, list_var_sliced, network_input, n
             rede.remove_constraint(list_input_constraints[index][i])
             rede.solve(log_output=False)
 
-            if(len(copy_list_models) == index+1 and len(copy_list_models) >= 2):
+            if (len(copy_list_models) == index + 1 and len(copy_list_models) >= 2):
                 ir_cont += 1
 
             if rede.solution is not None:
                 solucao_pivo += 1
                 index_var_irrelevantes.remove(i)
 
-                for j in range(index+1):
+                for j in range(index + 1):
                     copy_list_models[j].add_constraint(list_input_constraints[j][i])
                 break
 
@@ -166,11 +164,11 @@ def test_get_explanation2(list_models, config, list_var_sliced, network_input, n
         list_index_models_uteis.extend(list_index_models_uteis_pivo_aux)
         list_input_constraints.extend(list_input_constraints_pivo_aux)
 
-    return [copy_list_models[0].find_matching_linear_constraints('input'), [solucao_pivo, solucao_inversa, irrelevante, ir_cont]]
+    return [copy_list_models[0].find_matching_linear_constraints('input'),
+            [solucao_pivo, solucao_inversa, irrelevante, ir_cont]]
 
 
 def test_get_explanation(list_models, config, list_var_sliced, network_input, network_output, list_output_bounds):
-
     ponteiro_rede_pivo = config[0]
     n_classes = config[1]
     method = config[2]
@@ -201,7 +199,7 @@ def test_get_explanation(list_models, config, list_var_sliced, network_input, ne
 
                 index_var_irrelevantes.remove(i)
 
-                for j in range(index+1):
+                for j in range(index + 1):
                     copy_list_models[j].add_constraint(list_input_constraints[j][i])
                 break
 
@@ -278,77 +276,58 @@ def setup():
 
 
 def rotina_1():
-    # METODO_TJENG = False
-    # METODO_FISCHETTI = True
-
     rede_setup = setup()
 
-    rede_setup[0].pop(0)
-    rede_setup[0].pop(0)  # muito demorado
-    rede_setup[0].pop(0)  # muito demorado
-    for metodo in range(2):
-        if metodo:
-            print("Fischetti")
+    rede_setup[0].pop(0)  # australian já codificado
 
-        else:
-            print("Tjeng")
+    for dataset in rede_setup[0]:
+        df = {
+            'metodo': [],
+            'camadas': [],
+            'neurônios': [],
+            'slices': [],
+            'ub_y<=0': [],
+            'lb_y>=0': [],
+            'sem_simplificação': [],
+            'total': [],
+            'tempo': []
+        }
+        start = time()
+        dir_path = dataset[0]
 
-        for dataset in rede_setup[0]:
-            df = {
-                'metodo': [],
-                'camadas': [],
-                'neurônios': [],
-                'slices': [],
-                'ub_y<=0': [],
-                'lb_y>=0': [],
-                'sem_simplificação': [],
-                'total': [],
-                'tempo': []
-            }
-            start = time()
-            dir_path = dataset[0]
+        data_test = pd.read_csv(f'../../datasets/{dir_path}/test.csv')
+        data_train = pd.read_csv(f'../../datasets/{dir_path}/train.csv')
 
-            data_test = pd.read_csv(f'../../datasets/{dir_path}/test.csv')
-            data_train = pd.read_csv(f'../../datasets/{dir_path}/train.csv')
+        data = data_train.append(data_test)
+        print(dir_path)
 
-            data = data_train.append(data_test)
-            if metodo:
-                print("Fischetti", dir_path)
+        for layers in range(1, 4):
 
-            else:
-                print("Tjeng", dir_path)
-            for layers in range(1, 4):
+            for n_neurons in rede_setup[1]:
+                start3 = time()
+                for slices in range(4):
+                    start2 = time()
 
-                for n_neurons in rede_setup[1]:
-                    start3 = time()
-                    for slices in range(4):
-                        start2 = time()
+                    modelo_em_tf = tf.keras.models.load_model(
+                        f'../../datasets/{dir_path}/model_no_int_{layers}layers_{n_neurons}neurons_{dir_path}.h5')
+                    modelo, results = mm.codify_network(modelo_em_tf, data, 0, slices)
 
-                        modelo_em_tf = tf.keras.models.load_model(
-                            f'../../datasets/{dir_path}/model_no_int_{layers}layers_{n_neurons}neurons_{dir_path}.h5')
-                        modelo, results = mm.codify_network(modelo_em_tf, data, metodo, slices)
+                    df['camadas'].append(layers)
+                    df['neurônios'].append(n_neurons)
+                    df['slices'].append(slices)
+                    df['ub_y<=0'].append(results[0])
+                    df['lb_y>=0'].append(results[1])
+                    df['sem_simplificação'].append(results[2])
+                    df['total'].append(results[0] + results[1] + results[2])
+                    df['tempo'].append(time() - start2)
 
-                        if metodo:
-                            df['metodo'].append('fischetti')
-                        else:
-                            df['metodo'].append('tjeng')
-                        df['camadas'].append(layers)
-                        df['neurônios'].append(n_neurons)
-                        df['slices'].append(slices)
-                        df['ub_y<=0'].append(results[0])
-                        df['lb_y>=0'].append(results[1])
-                        df['sem_simplificação'].append(results[2])
-                        df['total'].append(results[0] + results[1] + results[2])
-                        df['tempo'].append(time()-start2)
+                print(f'{layers}layer(s) {n_neurons}neurons 0 a 3 slices concluída', time() - start3)
 
-                    print(f'{layers}layer(s) {n_neurons}neurons 0 a 3 slices concluída', time() - start3)
-
-            metodo_aux = df['metodo'][0]
-            df.pop('metodo')
-            df = pd.DataFrame(df)
-            print(df)
-            print(f'{dir_path} codificado! tempo: {time() - start}')
-            df.to_csv(f'{dir_path}_{metodo_aux}_f1.csv')
+        df.pop('metodo')
+        df = pd.DataFrame(df)
+        print(df)
+        print(f'{dir_path} codificado! tempo: {time() - start}')
+        df.to_csv(f'{dir_path}_[:-1]_f1.csv')
 
 
 def main():
