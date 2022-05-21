@@ -270,15 +270,13 @@ def setup():
                 ['heart-statlog', 2],
                 ['hepatitis', 2]]
 
-    configurations = [8, 16, 32]
+    configurations = [8, 16, 24, 32]
 
     return [datasets, configurations]
 
 
 def rotina_1():
     rede_setup = setup()
-
-    rede_setup[0].pop(0)  # australian já codificado
 
     for dataset in rede_setup[0]:
         df = {
@@ -304,6 +302,9 @@ def rotina_1():
         for layers in range(1, 4):
 
             for n_neurons in rede_setup[1]:
+                if n_neurons >= 32:
+                    continue
+
                 start3 = time()
                 for slices in range(4):
                     start2 = time()
@@ -327,7 +328,7 @@ def rotina_1():
         df = pd.DataFrame(df)
         print(df)
         print(f'{dir_path} codificado! tempo: {time() - start}')
-        df.to_csv(f'{dir_path}_[:-1]_f1.csv')
+        df.to_csv(f'{dir_path}_r1.csv')
 
 
 def main():
