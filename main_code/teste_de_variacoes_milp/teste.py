@@ -4,6 +4,7 @@ from time import time
 from statistics import mean, stdev
 import pandas as pd
 
+from main_code.rede_neural import gerar_rede as gr
 from main_code.rede_em_milp import main_milp as mm
 
 
@@ -90,103 +91,31 @@ def configura_rede(model, network_input, network_output, n_classes, method, outp
     return input_constraints
 
 
-def test_get_explanation2(list_models, config, list_var_sliced, network_input, network_output, list_output_bounds):
-    solucao_pivo = 0
-    solucao_inversa = 0
-    irrelevante = 0
-    ir_cont = 0
+def get_explanation_sliced(list_models, list_var_sliced, list_output_bounds, config_data, n_classes):
 
-    ponteiro_rede_pivo = config[0]
-    n_classes = config[1]
-    method = config[2]
+    # desencapsulamento
+    ponteiro_rede_pivo = config_data[0]
+    method = config_data[1]
+    network_input = config_data[2]
+    network_output = config_data[3]
 
+    # vetores
     copy_list_models = []
     list_index_models_uteis = []
     list_input_constraints = []
+    index_var_irrelevantes = []
 
+    # atribuição inicial de vetores
     copy_list_models.append(list_models[ponteiro_rede_pivo].clone())
     list_index_models_uteis.append(ponteiro_rede_pivo)
     list_input_constraints.append(configura_rede(copy_list_models[0], network_input, network_output,
                                                  n_classes, method, list_output_bounds[ponteiro_rede_pivo], []))
 
-    index_var_irrelevantes = []
     for i in range(len(network_input[0])):
         index_var_irrelevantes.append(i)
         notvazio = False
 
-        copy_list_models_aux = []
-        list_index_models_uteis_pivo_aux = []
-        list_input_constraints_pivo_aux = []
-
-        for index, rede in enumerate(copy_list_models):
-            rede.remove_constraint(list_input_constraints[index][i])
-            rede.solve(log_output=False)
-
-            if (len(copy_list_models) == index + 1 and len(copy_list_models) >= 2):
-                ir_cont += 1
-
-            if rede.solution is not None:
-                solucao_pivo += 1
-                index_var_irrelevantes.remove(i)
-
-                for j in range(index + 1):
-                    copy_list_models[j].add_constraint(list_input_constraints[j][i])
-                break
-
-        if i not in list_var_sliced or i not in index_var_irrelevantes:
-            continue
-
-        for ponteiro in list_index_models_uteis:
-            inversa = procura_rede_inversa_by_var(list_var_sliced.index(i), ponteiro)
-            copy = list_models[inversa].clone()
-            output_bounds = list_output_bounds[inversa]
-            input_constraints = configura_rede(copy, network_input, network_output, n_classes, method,
-                                               output_bounds, index_var_irrelevantes)
-
-            copy.solve()
-
-            if copy.solution is None:
-                copy_list_models_aux.append(copy)
-                list_index_models_uteis_pivo_aux.append(inversa)
-                list_input_constraints_pivo_aux.append(input_constraints)
-                continue
-            else:
-                solucao_inversa += 1
-                index_var_irrelevantes.remove(i)
-                for j, rede in enumerate(copy_list_models):
-                    rede.add_constraint(list_input_constraints[j][i])
-                notvazio = True
-                break
-        if notvazio:
-            continue
-        irrelevante += 1
-        copy_list_models.extend(copy_list_models_aux)
-        list_index_models_uteis.extend(list_index_models_uteis_pivo_aux)
-        list_input_constraints.extend(list_input_constraints_pivo_aux)
-
-    return [copy_list_models[0].find_matching_linear_constraints('input'),
-            [solucao_pivo, solucao_inversa, irrelevante, ir_cont]]
-
-
-def test_get_explanation(list_models, config, list_var_sliced, network_input, network_output, list_output_bounds):
-    ponteiro_rede_pivo = config[0]
-    n_classes = config[1]
-    method = config[2]
-
-    copy_list_models = []
-    list_index_models_uteis = []
-    list_input_constraints = []
-
-    copy_list_models.append(list_models[ponteiro_rede_pivo].clone())
-    list_index_models_uteis.append(ponteiro_rede_pivo)
-    list_input_constraints.append(configura_rede(copy_list_models[0], network_input, network_output,
-                                                 n_classes, method, list_output_bounds[ponteiro_rede_pivo], []))
-
-    index_var_irrelevantes = []
-    for i in range(len(network_input[0])):
-        index_var_irrelevantes.append(i)
-        notvazio = False
-
+        # vetores auxiliares
         copy_list_models_aux = []
         list_index_models_uteis_pivo_aux = []
         list_input_constraints_pivo_aux = []
@@ -270,7 +199,7 @@ def setup():
                 ['heart-statlog', 2],
                 ['hepatitis', 2]]
 
-    configurations = [8, 16, 24, 32]
+    configurations = [8, 16]
 
     return [datasets, configurations]
 
@@ -280,7 +209,6 @@ def rotina_1():
 
     for dataset in rede_setup[0]:
         df = {
-            'metodo': [],
             'camadas': [],
             'neurônios': [],
             'slices': [],
@@ -324,7 +252,6 @@ def rotina_1():
 
                 print(f'{layers}layer(s) {n_neurons}neurons 0 a 3 slices concluída', time() - start3)
 
-        df.pop('metodo')
         df = pd.DataFrame(df)
         print(df)
         print(f'{dir_path} codificado! tempo: {time() - start}')
@@ -393,8 +320,105 @@ def main():
     # print(times)
 
 
-def rotina_3():
-    pass
+def rotina_2():
+    rede_setup = setup()
+
+    for dataset in rede_setup[0]:
+        df = {
+            'camadas': [],
+            'neurônios': [],
+            'slices': [],
+            'tamanho_max': [],
+            'tamanho_min': [],
+            'tamanho_médio': [],
+            'tamanho_desvio_padrão': [],
+            'tempo_max': [],
+            'tempo_min': [],
+            'tempo_médio': [],
+            'tempo_desvio_padrão': [],
+            'tempo_total': []
+        }
+        start1 = time()
+        dir_path = dataset[0]
+        n_classes = dataset[1]
+
+        data_test = pd.read_csv(f'../../datasets/{dir_path}/test.csv')
+        data_train = pd.read_csv(f'../../datasets/{dir_path}/train.csv')
+        data = data_train.append(data_test)
+        data_train, data_test = gr.remove_integer_vars(data_train, data_test)
+        data_aux = np.append(data_test, data_test, 0)
+        # print(data_aux)
+        print(dir_path)
+
+        for layers in range(1, 5):
+
+            for n_neurons in rede_setup[1]:
+                start2 = time()
+
+                for slices in range(4):
+                    start3 = time()
+
+                    # codificação milp
+                    modelo_em_tf = tf.keras.models.load_model(
+                        f'../../datasets/{dir_path}/model_no_int_{layers}layers_{n_neurons}neurons_{dir_path}.h5')
+                    modelo, results = mm.codify_network(modelo_em_tf, data, 0, slices)
+                    milp_models = modelo[0]
+                    list_bounds_input = modelo[1]
+                    list_output_bounds = modelo[2]
+                    list_vars_sliced = modelo[3]
+
+                    # variáveis de resultado
+                    tamanhos = []
+                    times = []
+
+                    for i in range(data_aux.shape[0]):
+                        start4 = time()
+                        network_input = data_aux[i, :-1]
+
+                        index_rede_pivo = procura_index_rede_pivo(list_bounds_input, list_vars_sliced, network_input)
+
+                        network_input = tf.reshape(tf.constant(network_input), (1, -1))
+                        network_output = modelo_em_tf.predict(tf.constant(network_input))[0]
+                        network_output = tf.argmax(network_output)
+
+                        config_data = [index_rede_pivo, 0, network_input, network_output]
+
+                        if slices == 0:
+                            mdl_aux = milp_models[0].clone()
+                            explanation = get_miminal_explanation(mdl_aux, network_input, network_output, n_classes,
+                                                                  0, list_output_bounds[0])
+
+                        else:
+                            explanation = get_explanation_sliced(milp_models, list_vars_sliced, list_output_bounds,
+                                                                 config_data, n_classes)
+
+                        # print(f'{layers} layer(s) {n_neurons} neurons {slices} slices dado {i} concluído',
+                        #       time() - start4)
+                        # print(explanation)
+
+                        times.append(time() - start4)
+                        tamanhos.append(len(explanation))
+
+                    df['camadas'].append(layers)
+                    df['neurônios'].append(n_neurons)
+                    df['slices'].append(slices)
+                    df['tamanho_max'].append(max(tamanhos))
+                    df['tamanho_min'].append(min(tamanhos))
+                    df['tamanho_médio'].append(mean(tamanhos))
+                    df['tamanho_desvio_padrão'].append(stdev(tamanhos))
+                    df['tempo_max'].append(max(times))
+                    df['tempo_min'].append(min(times))
+                    df['tempo_médio'].append(mean(times))
+                    df['tempo_desvio_padrão'].append(stdev(times))
+                    df['tempo_total'].append(time() - start3)
+
+                    print(f'{layers} layer(s) {n_neurons} neurons {slices} slices concluído', time() - start3)
+
+        df = pd.DataFrame(df)
+        print(df)
+        print(f'{dir_path} explicado! tempo: {time() - start1}')
+        df.to_csv(f'{dir_path}_r2.csv')
+
     # METODO_TJENG = False
     # METODO_FISCHETTI = True
     #
@@ -460,4 +484,4 @@ def rotina_3():
 
 
 if __name__ == '__main__':
-    rotina_1()
+    rotina_2()

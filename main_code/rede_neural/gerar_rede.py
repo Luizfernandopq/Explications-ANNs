@@ -30,7 +30,7 @@ def remove_integer_vars(data_train, data_test):
 
     removido = 0
 
-    print(domain)
+    # print(domain)
 
     for index, tipo in enumerate(domain):
         if tipo == 1:
@@ -38,7 +38,7 @@ def remove_integer_vars(data_train, data_test):
             data_test = np.delete(data_test, index - removido, 1)
             removido += 1
 
-    print(len(domain)+1, data_train.shape[1])
+    # print(len(domain)+1, data_train.shape[1])
 
     return data_train, data_test
 
