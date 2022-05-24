@@ -324,11 +324,10 @@ def rotina_2():
 
     rede_setup = setup()
 
-    rede_setup[0].pop(0)
-    rede_setup[0].pop(0)
-    rede_setup[0].pop(0)
-    rede_setup[0].pop(0)
-    rede_setup[0].pop(0)
+    rede_setup[0].pop(6)
+    # rede_setup[0].pop(0)
+    # rede_setup[0].pop(0)
+    # rede_setup[0].pop(0)
     # rede_setup[0].pop(0)
     # rede_setup[0].pop(0)
 
@@ -388,7 +387,7 @@ def rotina_2():
                         index_rede_pivo = procura_index_rede_pivo(list_bounds_input, list_vars_sliced, network_input)
 
                         network_input = tf.reshape(tf.constant(network_input), (1, -1))
-                        network_output = modelo_em_tf.predict(tf.constant(network_input), verbose=0)[0]
+                        network_output = modelo_em_tf.predict(tf.constant(network_input))[0]
                         network_output = tf.argmax(network_output)
 
                         config_data = [index_rede_pivo, 0, network_input, network_output]
