@@ -324,9 +324,14 @@ def rotina_2():
 
     rede_setup = setup()
 
+    rede_setup[0].pop(6)
+    # rede_setup[0].pop(0)
+    # rede_setup[0].pop(0)
+    # rede_setup[0].pop(0)
+    # rede_setup[0].pop(0)
     # rede_setup[0].pop(0)
 
-    # print(rede_setup)
+    print(rede_setup)
 
     for dataset in rede_setup[0]:
         df = {
@@ -354,7 +359,7 @@ def rotina_2():
         data_aux = np.append(data_test, data_test, 0)
         print(dir_path)
 
-        for layers in range(1, 5):
+        for layers in range(1, 4):
 
             for n_neurons in rede_setup[1]:
 
@@ -421,7 +426,7 @@ def rotina_2():
         df = pd.DataFrame(df)
         print(df)
         print(f'{dir_path} explicado! tempo: {time() - start1}')
-        df.to_csv(f'{dir_path}_r2.csv')
+        df.to_csv(f'{dir_path}_r2_3layers.csv')
 
 
 if __name__ == '__main__':
