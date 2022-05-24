@@ -7,7 +7,6 @@ import pandas as pd
 from main_code.rede_neural import gerar_rede as gr
 from main_code.rede_em_milp import main_milp as mm
 
-
 # Métodos já existentes
 
 
