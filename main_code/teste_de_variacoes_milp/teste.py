@@ -3,6 +3,7 @@ import tensorflow as tf
 from time import time
 from statistics import mean, stdev
 import pandas as pd
+import random as rd
 
 from main_code.rede_neural import gerar_rede as gr
 from main_code.rede_em_milp import main_milp as mm
@@ -323,12 +324,12 @@ def rotina_2():
 
     rede_setup = setup()
 
-    rede_setup[0].pop(6)
-    rede_setup[0].pop(0)
-    rede_setup[0].pop(0)
-    rede_setup[0].pop(0)
-    rede_setup[0].pop(0)
-    rede_setup[0].pop(0)
+    # rede_setup[0].pop(6)
+    # rede_setup[0].pop(0)
+    # rede_setup[0].pop(0)
+    # rede_setup[0].pop(0)
+    # rede_setup[0].pop(0)
+    # rede_setup[0].pop(0)
 
     print(rede_setup)
 
@@ -355,10 +356,10 @@ def rotina_2():
         data_train = pd.read_csv(f'../../datasets/{dir_path}/train.csv')
         data = data_train.append(data_test)
         data_train, data_test = gr.remove_integer_vars(data_train, data_test)
-        data_aux = np.append(data_test, data_test, 0)
+        data_aux = np.concatenate((data_test, data_train), axis=0)
         print(dir_path)
 
-        for layers in range(1, 4):
+        for layers in range(1, 5):
 
             for n_neurons in rede_setup[1]:
 
@@ -374,12 +375,15 @@ def rotina_2():
                     list_output_bounds = modelo[2]
                     list_vars_sliced = modelo[3]
 
+                    n_instancias = int(data_aux.shape[0]/10) + 1
+                    amostra = rd.sample(range(0, data_aux.shape[0]), n_instancias)
+
                     # variáveis de resultado
                     start3 = time()
                     tamanhos = []
                     times = []
 
-                    for i in range(data_aux.shape[0]):
+                    for i in amostra:
                         start4 = time()
                         network_input = data_aux[i, :-1]
 
@@ -425,7 +429,7 @@ def rotina_2():
         df = pd.DataFrame(df)
         print(df)
         print(f'{dir_path} explicado! tempo: {time() - start1}')
-        df.to_csv(f'{dir_path}_r2_3layers.csv')
+        df.to_csv(f'{dir_path}_r2_10pct.csv')
 
 
 if __name__ == '__main__':
