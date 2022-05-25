@@ -324,9 +324,13 @@ def rotina_2():
 
     rede_setup = setup()
 
-    # rede_setup[0].pop(6)
-    # rede_setup[0].pop(0)
-    # rede_setup[0].pop(0)
+    rede_setup[0].pop(7)  # heart OK
+    rede_setup[0].pop(4)  # cleveland OK
+    rede_setup[0].pop(3)  # cleve OK
+    rede_setup[0].pop(2)  # backache a fazer!
+    rede_setup[0].pop(1)  # auto OK
+    rede_setup[0].pop(0)  # australian no outro computador
+
     # rede_setup[0].pop(0)
     # rede_setup[0].pop(0)
     # rede_setup[0].pop(0)
