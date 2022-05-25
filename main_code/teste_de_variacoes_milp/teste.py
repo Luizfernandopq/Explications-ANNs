@@ -324,9 +324,12 @@ def rotina_2():
 
     rede_setup = setup()
 
-    # rede_setup[0].pop(6)
-    # rede_setup[0].pop(0)
-    # rede_setup[0].pop(0)
+    rede_setup[0].pop(7)
+    rede_setup[0].pop(5)
+    rede_setup[0].pop(4)
+    rede_setup[0].pop(3)
+    rede_setup[0].pop(0)
+
     # rede_setup[0].pop(0)
     # rede_setup[0].pop(0)
     # rede_setup[0].pop(0)
@@ -357,7 +360,11 @@ def rotina_2():
         data = data_train.append(data_test)
         data_train, data_test = gr.remove_integer_vars(data_train, data_test)
         data_aux = np.concatenate((data_test, data_train), axis=0)
-        print(dir_path)
+
+        n_instancias = int(data_aux.shape[0] / 10) + 1
+        amostra = rd.sample(range(0, data_aux.shape[0]), n_instancias)
+
+        print(dir_path, n_instancias)
 
         for layers in range(1, 5):
 
@@ -374,9 +381,6 @@ def rotina_2():
                     list_bounds_input = modelo[1]
                     list_output_bounds = modelo[2]
                     list_vars_sliced = modelo[3]
-
-                    n_instancias = int(data_aux.shape[0]/10) + 1
-                    amostra = rd.sample(range(0, data_aux.shape[0]), n_instancias)
 
                     # variáveis de resultado
                     start3 = time()
