@@ -5,6 +5,8 @@ from statistics import mean, stdev
 import pandas as pd
 import random as rd
 
+import matplotlib.pyplot as plt
+
 from main_code.rede_neural import gerar_rede as gr
 from main_code.rede_em_milp import main_milp as mm
 
@@ -376,10 +378,88 @@ def rotina_2():
 # Análise de resultados
 
 
-def analise(arquivo=None, subdiretorio=None):
-    resultado1 = pd.read_csv(f'../../results/rotina_1/australian_r1.csv')
-    
+def analise1():
+    rede_setup = setup()
+
+    renomear = {'sem_simplificação': 'simplificada em %', 'slices': 'fatias', 'tempo': 'tempo de construção'}
+    colunas = ['camadas', 'neurônios', 'fatias', 'simplificada em %', 'total', 'tempo de construção']
+    colunas_tempo = ['fatias', 'simplificada em %', 'tempo de construção']
+
+    for dataset in rede_setup[0]:
+        dir_path = dataset[0]
+        resultado_geral = pd.read_csv(f'../../results/rotina_1/{dir_path}_r1.csv')
+
+        resultado_geral = resultado_geral.rename(columns=renomear)
+
+        resultado_geral = resultado_geral.filter(items=colunas)
+        resultado_geral['simplificada em %'] = \
+            ((resultado_geral['total'] - resultado_geral['simplificada em %']) * 100) / resultado_geral['total']
+
+        melhor_camada = resultado_geral['camadas'] \
+            .where(resultado_geral['simplificada em %'] == resultado_geral['simplificada em %'].max()).max()
+        melhor_neuronio = resultado_geral['neurônios'] \
+            .where(resultado_geral['simplificada em %'] == resultado_geral['simplificada em %'].max()).max()
+
+        resultado = resultado_geral.filter(items=colunas_tempo) \
+            .where(resultado_geral['camadas'] == melhor_camada) \
+            .where(resultado_geral['neurônios'] == melhor_neuronio)
+
+        resultado.index = resultado['fatias']
+        resultado.pop('fatias')
+        resultado.plot(subplots=True, layout=(1, 2))
+
+        plt.suptitle(f'{dir_path}: {int(melhor_camada)} camadas {int(melhor_neuronio)} neurônios')
+        plt.show()
+
+    # Plota todos os gráficos
+    # for i in range(1, 5):
+    #     for j in range(8, 24, 8):
+    #         resultado = resultado_geral.filter(items=colunas) \
+    #             .where(resultado_geral['camadas'] == i) \
+    #             .where(resultado_geral['neurônios'] == j)
+    #         resultado = resultado.filter(items=colunas_tempo)
+    #         resultado.index = resultado['fatias']
+    #         resultado.pop('fatias')
+    #         resultado.plot(subplots=True, layout=(1, 2))
+    #
+    #         plt.suptitle(f'{i} camadas {j} neurônios')
+    #         plt.show()
+
+
+def analise2():
+    rede_setup = setup()
+
+    renomear = {'sem_simplificação': 'simplificada em %', 'slices': 'fatias', 'tempo': 'tempo de construção'}
+    colunas = ['camadas','neurônios','fatias','tamanho_max','tamanho_min', 'tamanho_médio','tamanho_desvio_padrão',
+               'tempo_max','tempo_min','tempo_médio','tempo_desvio_padrão', 'tempo_total']
+    colunas_tempo = ['fatias', 'tamanho_max', 'tamanho_min', 'tamanho_médio', 'tamanho_desvio_padrão',
+                     'tempo_max', 'tempo_min', 'tempo_médio', 'tempo_desvio_padrão', 'tempo_total']
+
+    for dataset in rede_setup[0]:
+        dir_path = dataset[0]
+        resultado_geral = pd.read_csv(f'../../results/rotina_2/4l_16n/{dir_path}_r2_10pct.csv')
+
+        resultado_geral = resultado_geral.rename(columns=renomear)
+
+        resultado_geral = resultado_geral.filter(items=colunas)
+
+        # melhor_camada = resultado_geral['camadas'] \
+        #     .where(resultado_geral['simplificada em %'] == resultado_geral['simplificada em %'].max()).max()
+        # melhor_neuronio = resultado_geral['neurônios'] \
+        #     .where(resultado_geral['simplificada em %'] == resultado_geral['simplificada em %'].max()).max()
+        melhor_camada = 4
+        melhor_neuronio = 16
+        resultado = resultado_geral.filter(items=colunas_tempo) \
+            .where(resultado_geral['camadas'] == melhor_camada) \
+            .where(resultado_geral['neurônios'] == melhor_neuronio)
+
+        resultado.index = resultado['fatias']
+        resultado.pop('fatias')
+        resultado.plot(subplots=True, layout=(3, 3))
+
+        plt.suptitle(f'Explicação {dir_path}: {int(melhor_camada)} camadas {int(melhor_neuronio)} neurônios')
+        plt.show()
 
 
 if __name__ == '__main__':
-    analise()
+    analise2()
