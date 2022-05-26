@@ -8,6 +8,7 @@ import random as rd
 from main_code.rede_neural import gerar_rede as gr
 from main_code.rede_em_milp import main_milp as mm
 
+
 # Métodos já existentes
 
 
@@ -92,7 +93,6 @@ def configura_rede(model, network_input, network_output, n_classes, method, outp
 
 
 def get_explanation_sliced(list_models, list_var_sliced, list_output_bounds, config_data, n_classes):
-
     # desencapsulamento
     ponteiro_rede_pivo = config_data[0]
     method = config_data[1]
@@ -258,70 +258,7 @@ def rotina_1():
         df.to_csv(f'{dir_path}_r1.csv')
 
 
-def main():
-    # METODO_TJENG = False
-    # METODO_FISCHETTI = True
-    NUM_SLICED_VARS = 2
-    path_dir = 'glass'
-    n_classes = 5
-
-    # modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/model_2layers_40neurons_{path_dir}.h5')
-    #
-    # # modelo_em_tf = tf.keras.models.load_model(f'../../datasets/{path_dir}/teste.h5')
-    #
-    # data_test = pd.read_csv(f'../../datasets/{path_dir}/test.csv')
-    # data_train = pd.read_csv(f'../../datasets/{path_dir}/train.csv')
-    # data = data_train.append(data_test)
-    # # data = data[['RI', 'Na', 'target']]
-    # data_aux = data.to_numpy()
-    #
-    # lista_de_modelos_em_milp, lista_de_bounds = mm.codify_network(modelo_em_tf, data, METODO_FISCHETTI, NUM_SLICED_VARS)
-    #
-    # list_input_bounds = lista_de_bounds[0]
-    # list_output_bounds = lista_de_bounds[1]
-    # list_vars_sliced = lista_de_bounds[2]
-    #
-    # # print(np.array(list_input_bounds))
-    # count = 0
-    # times = 0
-    # for i in range(data_aux.shape[0]):
-    #     print(f'dado: {i}')
-    #
-    #     start = time()
-    #     network_input = data_aux[i, :-1]
-    #
-    #     index_rede_pivo = procura_index_rede_pivo(list_input_bounds, list_vars_sliced, network_input)
-    #
-    #     # print(network_input)
-    #     # print(list_input_bounds[index_rede_pivo])
-    #
-    #     network_input = tf.reshape(tf.constant(network_input), (1, -1))
-    #     network_output = modelo_em_tf.predict(tf.constant(network_input))[0]
-    #     network_output = tf.argmax(network_output)
-    #
-    #     config = [index_rede_pivo, n_classes, METODO_FISCHETTI]
-    #
-    #     if NUM_SLICED_VARS == 0:
-    #         mdl_aux = lista_de_modelos_em_milp[0].clone()
-    #         explanation = get_miminal_explanation(mdl_aux, network_input, network_output, n_classes, METODO_FISCHETTI,
-    #                                               list_output_bounds[0])
-    #
-    #     else:
-    #         explanation = test_get_explanation(lista_de_modelos_em_milp, config, list_vars_sliced,
-    #                                            network_input, network_output, list_output_bounds)
-    #
-    #     # print(explanation[1][3])
-    #     # count += explanation[1][3]
-    #     print(time() - start)
-    #     times += time() - start
-    #
-    #     print()
-    # print(count/205)
-    # print(times)
-
-
 def rotina_2():
-
     rede_setup = setup()
 
     rede_setup[0].pop(8)  # hepatitis OK
@@ -436,5 +373,13 @@ def rotina_2():
         df.to_csv(f'{dir_path}_r2_10pct.csv')
 
 
+# Análise de resultados
+
+
+def analise(arquivo=None, subdiretorio=None):
+    resultado1 = pd.read_csv(f'../../results/rotina_1/australian_r1.csv')
+    
+
+
 if __name__ == '__main__':
-    rotina_2()
+    analise()
