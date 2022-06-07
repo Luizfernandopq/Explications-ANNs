@@ -400,9 +400,11 @@ def analise1():
         plt.suptitle(f'{dir_path}')
 
         resultado['tempo de construção'].plot(ax=axes[0], legend=True)
+        axes[0].legend(title='(camadas, neurônios)')
         axes[0].set_title('Tempo de construção')
 
         resultado['simplificada em %'].plot(ax=axes[1], legend=True)
+        axes[1].legend(title='(camadas, neurônios)')
         axes[1].set_title('simplificada em %')
 
         plt.show()
@@ -445,4 +447,4 @@ def analise2():
 
 
 if __name__ == '__main__':
-    analise2()
+    analise1()
